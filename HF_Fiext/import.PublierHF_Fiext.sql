@@ -32,8 +32,10 @@ BEGIN
 		ModificationDate     DATETIME,
 		FichierSource        NVARCHAR(255)
 	)
-	-- CreationDate и ModificationDate у нас всегда имеют тип DATETIME
-	-- если они не заданы в файле, присваиваем им значение GETDATE()
+	
+	-- установить формат даты как в процедуре валидации: 
+	SET DATEFORMAT DMY
+
 	INSERT #HFFiextContacts
 	  (
 	    ProfilID,
@@ -63,12 +65,10 @@ BEGIN
 	       CAST(DATE_NAISSANCE AS DATETIME) AS NaissanceDate,
 	       etl.trim(CATEGORIE_SOCIOPRO)  AS CatSocioProf,
 	       ISNULL(CAST(DATE_ANCIENNETE AS DATETIME), GETDATE()) AS CreationDate,
-	       ISNULL(CAST(DATE_MODIFICATION AS DATETIME), GETDATE()) AS 
-	       ModificationDate,
+	       ISNULL(CAST(DATE_MODIFICATION AS DATETIME), GETDATE()) AS ModificationDate,
 	       @FichierTS                    AS FichierSource
 	FROM   import.HF_Fiext                  h
 	WHERE  h.LigneStatut = 0
-	       --AND h.RejetCode = 0 -- это излишний критерий: если LigneStatut = 0, то заведомо RejetCode = 0
 	       AND h.FichierTS = @FichierTS
 	
 	CREATE INDEX idx01_ImportID ON #HFFiextContacts(OriginalID)       
@@ -91,10 +91,7 @@ BEGIN
 	SELECT b.ProfilID,
 	       b.OriginalID
 	FROM   brut.Contacts b
-	       -- нас интересуют не все существующие контакты, а только те, которые мы собираемся изменить
-	       -- поэтому добавляем INNER JOIN :
-	       
-	       INNER JOIN #HFFiextContacts a
+ 	       INNER JOIN #HFFiextContacts a
 	            ON  a.OriginalID = b.OriginalID
 	WHERE  b.SourceID = @SourceID
 	
@@ -150,14 +147,11 @@ BEGIN
 	       CatSocioProf = b.CatSocioProf,
 	       CreationDate = b.CreationDate,
 	       ModificationDate = b.ModificationDate,
-	       RaisonSociale = b.RaisonSociale
-	       -- установить флаг модификации:
-	       ,
+	       RaisonSociale = b.RaisonSociale,
 	       ModifieTop = 1
 	FROM   brut.Contacts a
 	       INNER JOIN #HFFiextContacts b
 	            ON  a.ProfilID = b.ProfilID
-	--WHERE  b.ProfilID IS NOT NULL -- излишнее условие: INNER JOIN всё равно не работает по значению NULL
 	
 	-- update new profileId
 	UPDATE hc
@@ -167,6 +161,8 @@ BEGIN
 	            ON  c.OriginalID = hc.OriginalID
 	WHERE  c.SourceID = @SourceID
 	       AND hc.ProfilID IS NULL
+	       
+	-- здесь можно создать индекс по #HFFiextContacts(ProfilID)
 	
 	/* update Domiciliations*/
 	ALTER TABLE #HFFiextContacts ADD 
@@ -176,10 +172,11 @@ BEGIN
 	Adresse2 NVARCHAR(255),
 	Adresse3 NVARCHAR(255),
 	Adresse4 NVARCHAR(255),
-	CodePostal INT,
+	CodePostal INT, -- CodePostal NVARCHAR(32): могут присутствовать буквы, например, в английских или канадских почтовых кодах
+	--					кроме того, нужно сохранить слева ноль, если почтовый код, например, 06103 
 	Commune NVARCHAR(255),
 	Pays NVARCHAR(32),
-	Stop_adresse_postal BIT,
+	Stop_adresse_postal BIT, -- поскольку в базе это поле всегда 0 или 1, лучше сделать его NOT NULL DEFAULT(0)
 	Date_stop_adresse_postal DATETIME
 	
 	
@@ -191,11 +188,11 @@ BEGIN
 	       hc.Adresse4 = LEFT(hf.ADRESSE4, 80),
 	       hc.CodePostal = LEFT(hf.CODE_POSTAL, 32),
 	       hc.Commune = LEFT(hf.COMMUNE, 80),
-	       hc.Pays = LEFT(hf.PAYS, 80),
+	       hc.Pays = LEFT(hf.PAYS, 80),  -- 32, поскольку Pays NVARCHAR(32)
 	       hc.Stop_adresse_postal = CASE 
 	                                     WHEN ISNUMERIC(hf.STOP_ADRESSE_POSTAL) 
 	                                          = 1 THEN CAST(hf.STOP_ADRESSE_POSTAL AS BIT)
-	                                     ELSE NULL
+	                                     ELSE NULL -- ELSE 0
 	                                END,
 	       hc.Date_stop_adresse_postal = CAST(hf.DATE_STOP_ADRESSEPOSTAL AS DATETIME)
 	FROM   #HFFiextContacts hc
@@ -232,7 +229,7 @@ BEGIN
 	       t.Date_stop_adresse_postal,
 	       t.CreationDate,
 	       t.ModificationDate,
-	       CAST(COALESCE(t.Type_habitation, N'') AS NVARCHAR(255))
+	       CAST(COALESCE(t.Type_habitation, N'') AS NVARCHAR(255)) -- Type_habitation не является частью адреса и не должно входить в ValeurOrigine
 	       + CAST(COALESCE(t.Adresse1, N'') AS NVARCHAR(255)) 
 	       + CAST(COALESCE(t.Adresse2, N'') AS NVARCHAR(255)) 
 	       + CAST(COALESCE(t.Adresse3, N'')AS NVARCHAR(255)) 
@@ -240,13 +237,14 @@ BEGIN
 	       + CAST(COALESCE(t.CodePostal, N'')AS NVARCHAR(255)) 
 	       + CAST(COALESCE(t.Commune, N'') AS NVARCHAR(255))
 	       + CAST(COALESCE(t.Pays, N'') AS NVARCHAR(255)) 
-	       + CAST(COALESCE(t.Stop_adresse_postal, N'') AS NVARCHAR(255))
-	       + CAST(COALESCE(t.Date_stop_adresse_postal, N'') AS NVARCHAR(255)) AS 
+	       + CAST(COALESCE(t.Stop_adresse_postal, N'') AS NVARCHAR(255)) -- Stop_adresse_postal не является частью адреса и не должно входить в ValeurOrigine
+	       + CAST(COALESCE(t.Date_stop_adresse_postal, N'') AS NVARCHAR(255)) -- Date_stop_adresse_postal не является частью адреса и не должно входить в ValeurOrigine
+	       AS 
 	       ValeurOrigine
 	FROM   #HFFiextContacts t
 	       LEFT JOIN brut.Domiciliations AS d
 	            ON  t.ProfilID = d.ProfilID
-	            AND d.ValeurOrigine = CAST(COALESCE(t.Type_habitation, N'') AS NVARCHAR(255))
+	            AND d.ValeurOrigine = CAST(COALESCE(t.Type_habitation, N'') AS NVARCHAR(255)) -- - не нужно
 	                + CAST(COALESCE(t.Adresse1, N'') AS NVARCHAR(255)) 
 	                + CAST(COALESCE(t.Adresse2, N'') AS NVARCHAR(255)) 
 	                + CAST(COALESCE(t.Adresse3, N'')AS NVARCHAR(255)) 
@@ -254,8 +252,8 @@ BEGIN
 	                + CAST(COALESCE(t.CodePostal, N'')AS NVARCHAR(255)) 
 	                + CAST(COALESCE(t.Commune, N'') AS NVARCHAR(255))
 	                + CAST(COALESCE(t.Pays, N'') AS NVARCHAR(255)) 
-	                + CAST(COALESCE(t.Stop_adresse_postal, N'') AS NVARCHAR(255))
-	                + CAST(COALESCE(t.Date_stop_adresse_postal, N'') AS NVARCHAR(255))
+	                + CAST(COALESCE(t.Stop_adresse_postal, N'') AS NVARCHAR(255)) -- - не нужно
+	                + CAST(COALESCE(t.Date_stop_adresse_postal, N'') AS NVARCHAR(255)) -- - не нужно
 	WHERE  NOT (
 	           t.Adresse1 IS NULL
 	           AND t.Adresse2 IS NULL
@@ -316,8 +314,8 @@ BEGIN
 	UPDATE hc
 	SET    hc.TelFixe = etl.trim(LEFT(hf.TEL_FIXE, 20)),
 	       hc.TelMobile = etl.trim(LEFT(hf.TEL_FIXE, 20)),
-	       hc.stopTelfixe = hf.STOP_TEL_FIXE,
-	       hc.stopTelMobile = hf.STOP_TEL_MOBILE
+	       hc.stopTelfixe = hf.STOP_TEL_FIXE, -- здесь тоже не помешает трим, поскольку у нас NVARCHAR(1) - а вдруг слева или справа пробел
+	       hc.stopTelMobile = hf.STOP_TEL_MOBILE -- -- "" --
 	FROM   #HFFiextContacts hc
 	       INNER JOIN import.HF_fiext AS hf
 	            ON  hf.ImportID = hc.OriginalID
@@ -341,7 +339,7 @@ BEGIN
 	                  c.ModificationDate,
 	                  c.TelMobile,
 	                  c.stopTelMobile,
-	                  etl.getPhoneType(c.TelFixe)
+	                  etl.getPhoneType(c.TelFixe) -- здесь, по логике, должен быть etl.getPhoneType(c.TelMobile)
 	           FROM   #HFFiextContacts c
 	           WHERE  TelMobile IS NOT NULL
 	       )                   x
@@ -374,6 +372,7 @@ BEGIN
 	MARQUE_ID INT
 	, [OPTIN_M] NVARCHAR(255)
 	, [OPTIN_P] NVARCHAR(255)
+	-- поля оптинов можно сделать INT: всё, что не 0 или 1, мы уже отбросили
 	
 	
 	UPDATE hc
@@ -436,6 +435,10 @@ BEGIN
 	            AND ce.Valeur = x.Valeur
 	WHERE  ce.ProfilID IS NULL
 	/*end update optins*/
+	
+	-- логика совершенно правильная, но поскольку brut.ConsentementsEmail - очень объемная таблица (на сегодняшний день почти 16 млн. строк)
+	-- то лучше создать сначала временную таблицу для результата вложенного запроса х , проиндексировать ее по (ProfilID) и по (Email,ContenuID)
+	-- и тогда уже делать LEFT JOIN c brut.ConsentementsEmail
 	
 	DROP TABLE #HFFiextContacts
 	DROP TABLE #telephones
