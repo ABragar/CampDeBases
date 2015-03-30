@@ -1,8 +1,3 @@
-/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.1.246
- * Time: 27.03.2015 17:05:31
- ************************************************************/
-
 ALTER PROCEDURE import.publierHF_Fiext
 	@FichierTS NVARCHAR(255)
 AS
@@ -163,6 +158,7 @@ BEGIN
 	       AND hc.ProfilID IS NULL
 	       
 	-- здесь можно создать индекс по #HFFiextContacts(ProfilID)
+	CREATE INDEX idx01_ProfilID ON #HFFiextContacts(ProfilID)
 	
 	/* update Domiciliations*/
 	ALTER TABLE #HFFiextContacts ADD 
@@ -172,11 +168,11 @@ BEGIN
 	Adresse2 NVARCHAR(255),
 	Adresse3 NVARCHAR(255),
 	Adresse4 NVARCHAR(255),
-	CodePostal INT, -- CodePostal NVARCHAR(32): могут присутствовать буквы, например, в английских или канадских почтовых кодах
+	CodePostal NVARCHAR(32), -- CodePostal NVARCHAR(32): могут присутствовать буквы, например, в английских или канадских почтовых кодах
 	--					кроме того, нужно сохранить слева ноль, если почтовый код, например, 06103 
 	Commune NVARCHAR(255),
 	Pays NVARCHAR(32),
-	Stop_adresse_postal BIT, -- поскольку в базе это поле всегда 0 или 1, лучше сделать его NOT NULL DEFAULT(0)
+	Stop_adresse_postal BIT NOT NULL DEFAULT(0), -- поскольку в базе это поле всегда 0 или 1, лучше сделать его NOT NULL DEFAULT(0)
 	Date_stop_adresse_postal DATETIME
 	
 	
@@ -188,11 +184,11 @@ BEGIN
 	       hc.Adresse4 = LEFT(hf.ADRESSE4, 80),
 	       hc.CodePostal = LEFT(hf.CODE_POSTAL, 32),
 	       hc.Commune = LEFT(hf.COMMUNE, 80),
-	       hc.Pays = LEFT(hf.PAYS, 80),  -- 32, поскольку Pays NVARCHAR(32)
+	       hc.Pays = LEFT(hf.PAYS, 32),  -- 32, поскольку Pays NVARCHAR(32)
 	       hc.Stop_adresse_postal = CASE 
 	                                     WHEN ISNUMERIC(hf.STOP_ADRESSE_POSTAL) 
 	                                          = 1 THEN CAST(hf.STOP_ADRESSE_POSTAL AS BIT)
-	                                     ELSE NULL -- ELSE 0
+	                                     ELSE 0
 	                                END,
 	       hc.Date_stop_adresse_postal = CAST(hf.DATE_STOP_ADRESSEPOSTAL AS DATETIME)
 	FROM   #HFFiextContacts hc
