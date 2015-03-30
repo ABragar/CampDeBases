@@ -1,0 +1,1 @@
+bcp AmauryVUC.Import.HF_fiext in "D:\Projects\Camp de bases\FIEXT-18112014.csv" -f "D:\Projects\Camp de bases\HF_fiext.fmt" -e "D:\Projects\Camp de bases\HF_fiext.err" -T -F2 -S .\FRENCH
