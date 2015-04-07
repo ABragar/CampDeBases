@@ -4,12 +4,12 @@ set rwork=D:\Projects\Camp de bases\Projects\PVL
 rem cd "%rwork%\ImportData"
 
 for %%A in (
-31032015
+02042015
 ) do (
 echo Traitement de %%A commence
 time /t
 echo %%A
-call VEL_LP.bat %%A
+call VEL_FF.bat %%A
 if %ERRORLEVEL% NEQ 0 goto finerr
 )
 goto finnorm

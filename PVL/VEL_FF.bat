@@ -9,7 +9,7 @@ set rbat=%rwork%\batVUC
 set rlog=%rbat%\log\VEL
 set rsql=%rbat%\sql\VEL
 set rbcp=%rwork%\data\Ventes en ligne\VEL Le Parisien
-set rfilebcp=%rbcp%\VEL-LP-%1
+set rfilebcp=%rbcp%\VEL-FF-%1
 set rfmt=%rwork%\fmt\PVL
 set rbase=AmauryVUC
 
@@ -26,7 +26,7 @@ if not %%D==Remb time /t
 echo 
 if %%D==CatalogueDesOffres bcp %rbase%.import.PVL_CatalogueOffres in "%rfilebcp%\FF_%%D-%1.csv" -f "%rfmt%\PVL_CatalogueOffres.fmt" -e "%rlog%\%%D-%1.err" -T -F2 -S .\FRENCH -m10000 > "%rlog%\bcp_%%D-%1.log"
 if %%D==Account bcp %rbase%.import.PVL_Utilisateur in "%rfilebcp%\FF_%%D-%1.csv" -f "%rfmt%\PVL_Utilisateur.fmt" -e "%rlog%\%%D-%1.err" -T -F2 -S .\FRENCH -m10000 > "%rlog%\bcp_%%D-%1.log"
-if %%D==DailyOrder bcp %rbase%.import.PVL_Achats in "%rfilebcp%\FF_%%D-%1.csv" -f "%rfmt%\PVL_Achats.fmt" -e "%rlog%\%%D-%1.err" -T -F2 -S .\FRENCH -m10000 > "%rlog%\bcp_%%D-%1.log"
+if %%D==DailyOrder bcp %rbase%.import.PVL_Achats in "%rfilebcp%\FF_Order-%1.csv" -f "%rfmt%\PVL_Achats.fmt" -e "%rlog%\%%D-%1.err" -T -F2 -S .\FRENCH -m10000 > "%rlog%\bcp_%%D-%1.log"
 if %%D==Subscriptions bcp %rbase%.import.PVL_Abonnements in "%rfilebcp%\FF_%%D-%1.csv" -f "%rfmt%\PVL_Abonnements.fmt" -e "%rlog%\%%D-%1.err" -T -F2 -S .\FRENCH -m10000 > "%rlog%\bcp_%%D-%1.log"
 if %ERRORLEVEL% NEQ 0 goto finerr
 
