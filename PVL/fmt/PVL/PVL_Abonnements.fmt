@@ -1,0 +1,27 @@
+10.0
+24
+1 SQLNCHAR 0 0 "\"\0" 0 Skip French_CI_AS
+2 SQLNCHAR 0 32 "\"\0,\0\"\0" 2 SubscriptionId  French_CI_AS
+3 SQLNCHAR 0 32 "\"\0,\0\"\0" 3 ServiceID  French_CI_AS
+4 SQLNCHAR 0 64 "\"\0,\0\"\0" 4 SubscriptionCreated  French_CI_AS
+5 SQLNCHAR 0 64 "\"\0,\0\"\0" 5 SubscriptionLastUpdated  French_CI_AS
+6 SQLNCHAR 0 32 "\"\0,\0\"\0" 6 SubscriptionStatusID  French_CI_AS
+7 SQLNCHAR 0 510 "\"\0,\0\"\0" 7 SubscriptionStatus  French_CI_AS
+8 SQLNCHAR 0 510 "\"\0,\0\"\0" 8 ServiceTitle  French_CI_AS
+9 SQLNCHAR 0 510 "\"\0,\0\"\0" 9 ServiceDescription  French_CI_AS
+10 SQLNCHAR 0 510 "\"\0,\0\"\0" 10 ServiceGroup  French_CI_AS
+11 SQLNCHAR 0 510 "\"\0,\0\"\0" 11 ServiceGroupTitle  French_CI_AS
+12 SQLNCHAR 0 510 "\"\0,\0\"\0" 12 ServiceGroupDescription  French_CI_AS
+13 SQLNCHAR 0 510 "\"\0,\0\"\0" 13 UKI  French_CI_AS
+14 SQLNCHAR 0 32 "\"\0,\0\"\0" 14 AccountId  French_CI_AS
+15 SQLNCHAR 0 32 "\"\0,\0\"\0" 15 ClientUserId  French_CI_AS
+16 SQLNCHAR 0 64 "\"\0,\0\"\0" 16 ServiceExpiry  French_CI_AS
+17 SQLNCHAR 0 32 "\"\0,\0\"\0" 17 AutoRenew  French_CI_AS
+18 SQLNCHAR 0 100 "\"\0,\0\"\0" 0 Skip French_CI_AS
+19 SQLNCHAR 0 32 "\"\0,\0\"\0" 18 ExplicitPrice  French_CI_AS
+20 SQLNCHAR 0 40 "\"\0,\0\"\0" 19 ExplicitCurrency  French_CI_AS
+21 SQLNCHAR 0 100 "\"\0,\0\"\0" 0 Skip French_CI_AS
+22 SQLNCHAR 0 100 "\"\0,\0\"\0" 0 Skip French_CI_AS
+23 SQLNCHAR 0 100 "\"\0,\0\"\0" 0 Skip French_CI_AS
+24 SQLNCHAR 0 48 "\"\0\r\0\n\0" 20 IsTrial  French_CI_AS
+

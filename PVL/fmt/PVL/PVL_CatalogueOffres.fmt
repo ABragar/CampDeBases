@@ -1,0 +1,29 @@
+10.0
+27
+1 SQLCHAR 0 0 "\"\0" 0 Skip French_CI_AS
+2 SQLNCHAR 0 48 "\"\0,\0\"\0" 2 TypeOffre  French_CI_AS
+3 SQLNCHAR 0 32 "\"\0,\0\"\0" 3 IdentifiantOffre  French_CI_AS
+4 SQLNCHAR 0 510 "\"\0,\0\"\0" 4 NomOffre  French_CI_AS
+5 SQLNCHAR 0 510 "\"\0,\0\"\0" 5 DescriptionOffre  French_CI_AS
+6 SQLNCHAR 0 48 "\"\0,\0\"\0" 6 StatutOffre  French_CI_AS
+7 SQLNCHAR 0 32 "\"\0,\0\"\0" 7 PrixOffre  French_CI_AS
+8 SQLNCHAR 0 32 "\"\0,\0\"\0" 8 PrixInitialOffre  French_CI_AS
+9 SQLNCHAR 0 510 "\"\0,\0\"\0" 9 TypeProduit  French_CI_AS
+10 SQLNCHAR 0 32 "\"\0,\0\"\0" 10 NombreJetons  French_CI_AS
+11 SQLNCHAR 0 64 "\"\0,\0\"\0" 11 DateExpirationJeton  French_CI_AS
+12 SQLNCHAR 0 510 "\"\0,\0\"\0" 12 GroupeAbonnement  French_CI_AS
+13 SQLNCHAR 0 48 "\"\0,\0\"\0" 13 ATaciteReconduction  French_CI_AS
+14 SQLNCHAR 0 48 "\"\0,\0\"\0" 14 UnitePeriodeAbonnement  French_CI_AS
+15 SQLNCHAR 0 32 "\"\0,\0\"\0" 15 PeriodeAbonnement  French_CI_AS
+16 SQLNCHAR 0 48 "\"\0,\0\"\0" 16 PeriodeMinimalEngagement  French_CI_AS
+17 SQLNCHAR 0 48 "\"\0,\0\"\0" 17 PeriodeEssai  French_CI_AS
+18 SQLNCHAR 0 510 "\"\0,\0\"\0" 18 MarqueOffre  French_CI_AS
+19 SQLNCHAR 0 510 "\"\0,\0\"\0" 19 IdentifiantCadeau  French_CI_AS
+20 SQLNCHAR 0 48 "\"\0,\0\"\0" 20 VisibleWeb  French_CI_AS
+21 SQLNCHAR 0 510 "\"\0,\0\"\0" 21 TypeContenu  French_CI_AS
+22 SQLNCHAR 0 510 "\"\0,\0\"\0" 22 TitreSupport  French_CI_AS
+23 SQLNCHAR 0 8000 "\"\0,\0\"\0" 23 NomWeb  French_CI_AS
+24 SQLNCHAR 0 8000 "\"\0,\0\"\0" 24 DescriptionWeb  French_CI_AS
+25 SQLNCHAR 0 8000 "\"\0,\0\"\0" 25 ResumeOffre  French_CI_AS
+26 SQLNCHAR 0 510 "\"\0,\0\"\0" 26 AccrocheCommerciale  French_CI_AS
+27 SQLNCHAR 0 8000 "\"\0\r\0\n\0" 27 ArgumentaireCommercial  French_CI_AS
