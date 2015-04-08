@@ -1,0 +1,8 @@
+
+Starting copy...
+SQLState = 22001, NativeError = 0
+Error = [Microsoft][SQL Server Native Client 11.0]String data, right truncation
+
+15 rows copied.
+Network packet size (bytes): 4096
+Clock Time (ms.) Total     : 46     Average : (326.09 rows per sec.)

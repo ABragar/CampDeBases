@@ -1,0 +1,2 @@
+SQLState = S1000, NativeError = 0
+Error = [Microsoft][SQL Server Native Client 11.0]Unable to open BCP host data-file
