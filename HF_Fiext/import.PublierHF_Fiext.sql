@@ -1,16 +1,34 @@
 USE AmauryVUC
 GO
 
-ALTER PROCEDURE import.publierHF_Fiext
+DROP PROCEDURE import.PublierHF_Fiext
+GO
+
+CREATE PROCEDURE import.PublierHF_Fiext
 	@FichierTS NVARCHAR(255)
 AS
+
+-- =============================================
+-- Author: 			Andrei BRAGAR
+-- Creation date:	27/03/2015
+-- Description:		Alimentation des tables : 
+--						brut.Contacts
+--						brut.Domiciliations
+--						brut.Emails
+--						brut.Telephones
+--						brut.ConsentementsEmail
+-- Modification date : 
+-- Modified by :	
+-- Modifications :				
+-- =============================================
+
 BEGIN
 	SET NOCOUNT ON
 	
 	DECLARE @SourceID INT
 	SET @SourceID = 11
 	
-	IF (NOT OBJECT_ID('tempdb..#HFFiextContacts') IS NULL)
+	IF OBJECT_ID('tempdb..#HFFiextContacts') IS NOT NULL
 	    DROP TABLE #HFFiextContacts
 	
 	CREATE TABLE #HFFiextContacts
@@ -31,7 +49,6 @@ BEGIN
 	   ,FichierSource        NVARCHAR(255)
 	)
 	
-	-- установить формат даты как в процедуре валидации: 
 	SET DATEFORMAT DMY
 	
 	INSERT #HFFiextContacts
@@ -62,9 +79,8 @@ BEGIN
 	      ,CAST(GENRE AS TINYINT)        AS Genre
 	      ,CAST(DATE_NAISSANCE AS DATETIME) AS NaissanceDate
 	      ,etl.trim(CATEGORIE_SOCIOPRO)  AS CatSocioProf
-	      ,ISNULL(CAST(DATE_ANCIENNETE AS DATETIME) ,GETDATE()) AS CreationDate
-	      ,ISNULL(CAST(DATE_MODIFICATION AS DATETIME) ,GETDATE()) AS 
-	       ModificationDate
+	      ,COALESCE(CAST(DATE_ANCIENNETE AS DATETIME),CAST(DATE_MODIFICATION AS DATETIME),GETDATE()) AS CreationDate
+	      ,COALESCE(CAST(DATE_MODIFICATION AS DATETIME),CAST(DATE_ANCIENNETE AS DATETIME),GETDATE()) AS ModificationDate
 	      ,@FichierTS                    AS FichierSource
 	FROM   import.HF_Fiext                  h
 	WHERE  h.LigneStatut = 0
@@ -161,7 +177,6 @@ BEGIN
 	WHERE  c.SourceID = @SourceID
 	       AND hc.ProfilID IS NULL
 	
-	-- здесь можно создать индекс по #HFFiextContacts(ProfilID)
 	CREATE INDEX idx01_ProfilID ON #HFFiextContacts(ProfilID)
 	
 	/* update Domiciliations*/
@@ -172,11 +187,11 @@ BEGIN
 	Adresse2 NVARCHAR(255),
 	Adresse3 NVARCHAR(255),
 	Adresse4 NVARCHAR(255),
-	CodePostal NVARCHAR(32), -- CodePostal NVARCHAR(32): могут присутствовать буквы, например, в английских или канадских почтовых кодах
-	                         --					кроме того, нужно сохранить слева ноль, если почтовый код, например, 06103 
+	CodePostal NVARCHAR(32), 
+	                         
 	Commune NVARCHAR(255),
 	Pays NVARCHAR(32),
-	Stop_adresse_postal BIT NOT NULL DEFAULT(0), -- поскольку в базе это поле всегда 0 или 1, лучше сделать его NOT NULL DEFAULT(0)
+	Stop_adresse_postal BIT NOT NULL DEFAULT(0),
 	Date_stop_adresse_postal DATETIME
 	
 	
@@ -188,7 +203,7 @@ BEGIN
 	      ,hc.Adresse4 = LEFT(hf.ADRESSE4 ,80)
 	      ,hc.CodePostal = LEFT(hf.CODE_POSTAL ,32)
 	      ,hc.Commune = LEFT(hf.COMMUNE ,80)
-	      ,hc.Pays = LEFT(hf.PAYS ,32)	-- 32, поскольку Pays NVARCHAR(32)
+	      ,hc.Pays = LEFT(hf.PAYS ,32)	
 	      ,hc.Stop_adresse_postal = CASE 
 	                                     WHEN ISNUMERIC(hf.STOP_ADRESSE_POSTAL) 
 	                                          = 1 THEN CAST(hf.STOP_ADRESSE_POSTAL AS BIT)
@@ -339,7 +354,7 @@ BEGIN
 	
 	UPDATE hc
 	SET    hc.TelFixe = etl.trim(LEFT(hf.TEL_FIXE ,20))
-	      ,hc.TelMobile = etl.trim(LEFT(hf.TEL_FIXE ,20))
+	      ,hc.TelMobile = etl.trim(LEFT(hf.TEL_MOBILE ,20)) --
 	      ,hc.stopTelfixe = etl.trim(hf.STOP_TEL_FIXE)
 	      ,hc.stopTelMobile = etl.trim(hf.STOP_TEL_MOBILE)
 	FROM   #HFFiextContacts hc
@@ -424,7 +439,7 @@ BEGIN
 	           FROM   #HFFiextContacts  AS hf
 	                  INNER JOIN ref.Contenus AS c
 	                       ON  hf.MARQUE_ID = c.MarqueID
-	                           AND c.TypeContenu = 2
+	                           AND c.TypeContenu = 2 /* Optin Editeur (Commercial) */
 	           WHERE  hf.email IS NOT NULL
 	           UNION ALL
 	           SELECT profilId
@@ -439,7 +454,7 @@ BEGIN
 	           FROM   #HFFiextContacts  AS hf
 	                  INNER JOIN ref.Contenus AS c
 	                       ON  hf.MARQUE_ID = c.MarqueID
-	                           AND c.TypeContenu = 3
+	                           AND c.TypeContenu = 3 /* Optin Partenaires */
 	           WHERE  hf.email IS NOT NULL
 	       )          x
 	
@@ -468,10 +483,23 @@ BEGIN
 	WHERE  ce.ProfilID IS NULL
 	/*end update optins*/
 	
-	-- логика совершенно правильная, но поскольку brut.ConsentementsEmail - очень объемная таблица (на сегодняшний день почти 16 млн. строк)
-	-- то лучше создать сначала временную таблицу для результата вложенного запроса х , проиндексировать ее по (ProfilID) и по (Email,ContenuID)
-	-- и тогда уже делать LEFT JOIN c brut.ConsentementsEmail
+	-- Update line status from 0 to 99 (Valid to Published)
 	
-	DROP TABLE #HFFiextContacts
-	DROP TABLE #telephones
+	UPDATE	h
+	SET h.LigneStatut=99
+	FROM   import.HF_Fiext AS h
+		INNER JOIN #HFFiextContacts AS t 
+			ON h.ImportID=t.OriginalID
+	
+	IF OBJECT_ID('tempdb..#optins') IS NOT NULL
+		DROP TABLE #optins
+	
+	IF OBJECT_ID('tempdb..#HFFiextContacts') IS NOT NULL
+		DROP TABLE #HFFiextContacts
+		
+	IF OBJECT_ID('tempdb..#telephones') IS NOT NULL	
+		DROP TABLE #telephones
+
 END
+GO
+
