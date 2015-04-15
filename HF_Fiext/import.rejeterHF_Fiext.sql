@@ -8,7 +8,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-Alter proc [import].[rejeterHF_Fiext] @FichierTS nvarchar(255) 
+alter proc [import].[rejeterHF_Fiext] @FichierTS nvarchar(255) 
 as 
 
 begin 
@@ -22,8 +22,8 @@ if OBJECT_ID('tempdb..#T_Rejets') is not null
 
 select * into #T_Rejets from import.HF_Fiext where FichierTS = @FichierTS and LigneStatut<>99
 
-update #T_Rejets set LigneStatut=0 where LigneStatut<>0 
-update #T_Rejets set rejetCode=0 where rejetCode<>0 
+update #T_Rejets set LigneStatut=0 where LigneStatut not in (0,99)
+update #T_Rejets set rejetCode=0 where rejetCode<>0 and LigneStatut<>99
 
 set dateformat dmy
 ---Date validation
