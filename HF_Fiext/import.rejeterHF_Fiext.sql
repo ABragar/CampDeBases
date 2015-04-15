@@ -49,6 +49,24 @@ and isdate(coalesce(i.DATE_MODIFICATION, '01/01/1900')) = 0
 
 ---Date validation
 
+-- STOP_ADRESSE_POSTAL 
+update #T_Rejets set rejetCode = i.rejetCode | POWER(cast(2 as bigint),16)
+from #T_Rejets i
+where FichierTS = @FichierTS and i.LigneStatut<>99 
+AND isnull(etl.trim(i.STOP_ADRESSE_POSTAL),N'0') NOT IN (N'0',N'1')
+
+-- STOP_TEL_FIXE 
+update #T_Rejets set rejetCode = i.rejetCode | POWER(cast(2 as bigint),19)
+from #T_Rejets i
+where FichierTS = @FichierTS and i.LigneStatut<>99 
+AND isnull(etl.trim(i.STOP_TEL_FIXE),N'0') NOT IN (N'0',N'1')
+
+-- STOP_TEL_MOBILE 
+update #T_Rejets set rejetCode = i.rejetCode | POWER(cast(2 as bigint),21)
+from #T_Rejets i
+where FichierTS = @FichierTS and i.LigneStatut<>99 
+AND isnull(etl.trim(i.STOP_TEL_MOBILE),N'0') NOT IN (N'0',N'1')
+
 --- fields not null
 
 --marque_id

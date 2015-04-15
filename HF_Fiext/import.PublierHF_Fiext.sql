@@ -7,20 +7,19 @@ GO
 CREATE PROCEDURE import.PublierHF_Fiext
 	@FichierTS NVARCHAR(255)
 AS
-
--- =============================================
--- Author: 			Andrei BRAGAR
--- Creation date:	27/03/2015
--- Description:		Alimentation des tables : 
---						brut.Contacts
---						brut.Domiciliations
---						brut.Emails
---						brut.Telephones
---						brut.ConsentementsEmail
--- Modification date : 
--- Modified by :	
--- Modifications :				
--- =============================================
+	-- =============================================
+	-- Author: 			Andrei BRAGAR
+	-- Creation date:	27/03/2015
+	-- Description:		Alimentation des tables :
+	--						brut.Contacts
+	--						brut.Domiciliations
+	--						brut.Emails
+	--						brut.Telephones
+	--						brut.ConsentementsEmail
+	-- Modification date :	15/04/2015
+	-- Modified by :		Andrei BRAGAR
+	-- Modifications :
+	-- =============================================
 
 BEGIN
 	SET NOCOUNT ON
@@ -79,8 +78,16 @@ BEGIN
 	      ,CAST(GENRE AS TINYINT)        AS Genre
 	      ,CAST(DATE_NAISSANCE AS DATETIME) AS NaissanceDate
 	      ,etl.trim(CATEGORIE_SOCIOPRO)  AS CatSocioProf
-	      ,COALESCE(CAST(DATE_ANCIENNETE AS DATETIME),CAST(DATE_MODIFICATION AS DATETIME),GETDATE()) AS CreationDate
-	      ,COALESCE(CAST(DATE_MODIFICATION AS DATETIME),CAST(DATE_ANCIENNETE AS DATETIME),GETDATE()) AS ModificationDate
+	      ,COALESCE(
+	           CAST(DATE_ANCIENNETE AS DATETIME)
+	          ,CAST(DATE_MODIFICATION AS DATETIME)
+	          ,GETDATE()
+	       )                             AS CreationDate
+	      ,COALESCE(
+	           CAST(DATE_MODIFICATION AS DATETIME)
+	          ,CAST(DATE_ANCIENNETE AS DATETIME)
+	          ,GETDATE()
+	       )                             AS ModificationDate
 	      ,@FichierTS                    AS FichierSource
 	FROM   import.HF_Fiext                  h
 	WHERE  h.LigneStatut = 0
@@ -188,7 +195,7 @@ BEGIN
 	Adresse3 NVARCHAR(255),
 	Adresse4 NVARCHAR(255),
 	CodePostal NVARCHAR(32), 
-	                         
+	
 	Commune NVARCHAR(255),
 	Pays NVARCHAR(32),
 	Stop_adresse_postal BIT NOT NULL DEFAULT(0),
@@ -203,7 +210,7 @@ BEGIN
 	      ,hc.Adresse4 = LEFT(hf.ADRESSE4 ,80)
 	      ,hc.CodePostal = LEFT(hf.CODE_POSTAL ,32)
 	      ,hc.Commune = LEFT(hf.COMMUNE ,80)
-	      ,hc.Pays = LEFT(hf.PAYS ,32)	
+	      ,hc.Pays = LEFT(hf.PAYS ,32)
 	      ,hc.Stop_adresse_postal = CASE 
 	                                     WHEN ISNUMERIC(hf.STOP_ADRESSE_POSTAL) 
 	                                          = 1 THEN CAST(hf.STOP_ADRESSE_POSTAL AS BIT)
@@ -355,7 +362,7 @@ BEGIN
 	UPDATE hc
 	SET    hc.TelFixe = etl.trim(LEFT(hf.TEL_FIXE ,20))
 	      ,hc.TelMobile = etl.trim(LEFT(hf.TEL_MOBILE ,20)) --
-	      ,hc.stopTelfixe = etl.trim(hf.STOP_TEL_FIXE)
+	      ,hc.stopTelfixe = COALESCE(etl.trim(hf.STOP_TEL_FIXE) ,0)
 	      ,hc.stopTelMobile = etl.trim(hf.STOP_TEL_MOBILE)
 	FROM   #HFFiextContacts hc
 	       INNER JOIN import.HF_fiext AS hf
@@ -364,13 +371,13 @@ BEGIN
 	IF OBJECT_ID('tempdb..#telephones') IS NOT NULL
 	    DROP TABLE #telephones
 	
-	SELECT DISTINCT * INTO     #telephones
+	SELECT DISTINCT * INTO #telephones
 	FROM   (
 	           SELECT c.ProfilID
 	                 ,c.CreationDate
 	                 ,c.ModificationDate
 	                 ,c.TelFixe         AS PhoneNumber
-	                 ,c.stopTelfixe     AS StopFlag
+	                 ,COALESCE(c.stopTelfixe ,0) AS StopFlag
 	                 ,etl.getPhoneType(c.TelFixe) AS PhoneType
 	           FROM   #HFFiextContacts     c
 	           WHERE  TelFixe IS NOT NULL
@@ -379,11 +386,11 @@ BEGIN
 	                 ,c.CreationDate
 	                 ,c.ModificationDate
 	                 ,c.TelMobile
-	                 ,c.stopTelMobile
+	                 ,COALESCE(c.stopTelMobile ,0)
 	                 ,etl.getPhoneType(c.TelMobile)
 	           FROM   #HFFiextContacts c
 	           WHERE  TelMobile IS NOT NULL
-	       )                   x
+	       ) x
 	
 	INSERT brut.Telephones
 	  (
@@ -485,21 +492,20 @@ BEGIN
 	
 	-- Update line status from 0 to 99 (Valid to Published)
 	
-	UPDATE	h
-	SET h.LigneStatut=99
+	UPDATE h
+	SET    h.LigneStatut = 99
 	FROM   import.HF_Fiext AS h
-		INNER JOIN #HFFiextContacts AS t 
-			ON h.ImportID=t.OriginalID
+	       INNER JOIN #HFFiextContacts AS t
+	            ON  h.ImportID = t.OriginalID
 	
 	IF OBJECT_ID('tempdb..#optins') IS NOT NULL
-		DROP TABLE #optins
+	    DROP TABLE #optins
 	
 	IF OBJECT_ID('tempdb..#HFFiextContacts') IS NOT NULL
-		DROP TABLE #HFFiextContacts
-		
-	IF OBJECT_ID('tempdb..#telephones') IS NOT NULL	
-		DROP TABLE #telephones
-
+	    DROP TABLE #HFFiextContacts
+	
+	IF OBJECT_ID('tempdb..#telephones') IS NOT NULL
+	    DROP TABLE #telephones
 END
 GO
 
