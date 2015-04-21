@@ -63,14 +63,14 @@ BEGIN
 	(
 		sIdCompte        NVARCHAR(255)
 	   ,iRecipientId     NVARCHAR(18)
-	   ,ActionID         NVARCHAR(8)
+	   ,ActionID         INT
 	   ,ImportID         INT
 	   ,LigneStatut      INT
 	   ,FichierTS        NVARCHAR(255)
 	)	
 	
 	SET @sqlCommand = 
-	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,cc.ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
+	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,CAST(cc.ActionID AS INT) as ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
 	    + @CusCompteTableName + ' AS cc where cc.LigneStatut<>1'	          
 	
 	EXEC (@sqlCommand)
@@ -360,7 +360,7 @@ BEGIN
 	    FROM   #T_Achats a
 	           INNER JOIN (
 	                    SELECT RANK() OVER(
-	                               PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                               PARTITION BY b.sIdCompte ORDER BY b.ActionID 
 	                               DESC
 	                              ,b.ImportID DESC
 	                           ) AS N1
