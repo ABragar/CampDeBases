@@ -27,22 +27,9 @@ BEGIN
 	
 	DECLARE @SourceID INT
 	DECLARE @SourceID_Contact INT
-	DECLARE @FilePrefix NVARCHAR(5)
+	DECLARE @FilePrefix NVARCHAR(5) = NULL
 	DECLARE @CusCompteTableName NVARCHAR(30)
 	DECLARE @sqlCommand NVARCHAR(500)
-	
-	IF OBJECT_ID('tempdb..#CusCompteTmp') IS NOT NULL
-	    DROP TABLE #CusCompteTmp
-	
-	CREATE TABLE #CusCompteTmp
-	(
-		sIdCompte        NVARCHAR(255)
-	   ,iRecipientId     NVARCHAR(18)
-	   ,ActionID         NVARCHAR(8)
-	   ,ImportID         INT
-	   ,LigneStatut      INT
-	   ,FichierTS        NVARCHAR(255)
-	)	
 	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
@@ -66,10 +53,30 @@ BEGIN
 	    SET @FilePrefix = N'LP%'
 	END
 	
+	IF @FilePrefix IS NULL
+	    RAISERROR('File prefix does not match any of the possible',16, 1);
+	    
+	IF OBJECT_ID('tempdb..#CusCompteTmp') IS NOT NULL
+	    DROP TABLE #CusCompteTmp
+	
+	CREATE TABLE #CusCompteTmp
+	(
+		sIdCompte        NVARCHAR(255)
+	   ,iRecipientId     NVARCHAR(18)
+	   ,ActionID         NVARCHAR(8)
+	   ,ImportID         INT
+	   ,LigneStatut      INT
+	   ,FichierTS        NVARCHAR(255)
+	)	
 	
 	SET @sqlCommand = 
 	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,cc.ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
-	    + @CusCompteTableName + ' AS cc'	          
+	    + @CusCompteTableName + ' AS cc where cc.LigneStatut<>1'	          
+	
+	EXEC (@sqlCommand)
+	
+	CREATE INDEX idx01_sIdCompte ON #CusCompteTmp(sIdCompte) 
+	CREATE INDEX idx02_ActionID ON #CusCompteTmp(ActionID)
 	
 	IF OBJECT_ID('tempdb..#T_Achats') IS NOT NULL
 	    DROP TABLE #T_Achats
@@ -223,8 +230,7 @@ BEGIN
 	           INNER JOIN #CusCompteTmp b
 	                ON  a.ClientUserId = b.sIdCompte
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
-	           AND b.LigneStatut <> 1
-	           AND b.FichierTS LIKE @FilePrefix
+	           AND a.FichierTS LIKE @FilePrefix
 	END
 	
 	UPDATE a
@@ -287,8 +293,8 @@ BEGIN
 	   ,CommercialId
 	   ,SalonId
 	   ,ModePmtHorsLigne
-	   ,ImportID,
-	   PmtMode
+	   ,ImportID
+	   ,PmtMode
 	  )
 	SELECT NULL                           AS ProfilID
 	      ,a.ClientUserId
@@ -362,7 +368,6 @@ BEGIN
 	                          ,b.iRecipientId
 	                    FROM   #CusCompteTmp b
 	                    WHERE  b.LigneStatut <> 1
-	                           AND b.FichierTS LIKE @FilePrefix
 	                ) AS r1
 	                ON  a.ClientUserId = r1.sIdCompte
 	    WHERE  r1.N1 = 1
@@ -518,20 +523,20 @@ BEGIN
 	
 	
 	/********** AUTOCALCULATE REJECTSTATS **********/
-	IF (
-	       EXISTS(
-	           SELECT NULL
-	           FROM   sys.tables t
-	                  INNER JOIN sys.[schemas] s
-	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
-	           WHERE  s.name = 'import'
-	                  AND t.Name = 'PVL_Achats'
-	       )
-	   )
-	    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
-	            '95940C81-C7A7-4BD9-A523-445A343A9605'
-	           ,'PVL_Achats'
-	           ,@FichierTS
+	--	IF (
+	--	       EXISTS(
+	--	           SELECT NULL
+	--	           FROM   sys.tables t
+	--	                  INNER JOIN sys.[schemas] s
+	--	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+	--	           WHERE  s.name = 'import'
+	--	                  AND t.Name = 'PVL_Achats'
+	--	       )
+	--	   )
+	--	    EXECUTE [QTSDQF].[dbo].[RejetsStats]
+	--	            '95940C81-C7A7-4BD9-A523-445A343A9605'
+	--	           ,'PVL_Achats'
+	--	           ,@FichierTS
 END
 
 GO
