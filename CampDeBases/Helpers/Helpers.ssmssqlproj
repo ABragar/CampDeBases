@@ -19,6 +19,24 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
+        <FileNode Name="addNewValues2MiscPayMode.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>addNewValues2MiscPayMode.sql</FullPath>
+        </FileNode>
+        <FileNode Name="Create View1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>Create View1.sql</FullPath>
+        </FileNode>
+        <FileNode Name="Create View2.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>Create View2.sql</FullPath>
+        </FileNode>
         <FileNode Name="deleteImportedDataByFilename.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
@@ -31,17 +49,59 @@
           <AssociatedConnUserName />
           <FullPath>etl.GetContenuID.sql</FullPath>
         </FileNode>
+        <FileNode Name="etl.GetErrorCode.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.GetErrorCode.sql</FullPath>
+        </FileNode>
         <FileNode Name="etl.GetMarqueID.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>etl.GetMarqueID.sql</FullPath>
         </FileNode>
+        <FileNode Name="etl.Marques.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.Marques.sql</FullPath>
+        </FileNode>
+        <FileNode Name="etl.PayModes.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.PayModes.sql</FullPath>
+        </FileNode>
+        <FileNode Name="etl.RemplirVEL_Accounts.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.RemplirVEL_Accounts.sql</FullPath>
+        </FileNode>
+        <FileNode Name="etl.VEL_Accounts.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.VEL_Accounts.sql</FullPath>
+        </FileNode>
         <FileNode Name="getAllIportedData.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>getAllIportedData.sql</FullPath>
+        </FileNode>
+        <FileNode Name="GetPhoneTypeFunction.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>GetPhoneTypeFunction.sql</FullPath>
+        </FileNode>
+        <FileNode Name="TrimFunction.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>TrimFunction.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>

@@ -32,8 +32,8 @@
           <FullPath>2_Rejet_HF_fiext_create.sql</FullPath>
         </FileNode>
         <FileNode Name="create bcpformatFile.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>create bcpformatFile.sql</FullPath>
         </FileNode>

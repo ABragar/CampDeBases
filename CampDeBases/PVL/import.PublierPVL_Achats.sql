@@ -8,359 +8,531 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE proc [import].[PublierPVL_Achats] @FichierTS nvarchar(255)
-as
+ALTER PROC [import].[PublierPVL_Achats] @FichierTS NVARCHAR(255)
+AS
 
 -- =============================================
 -- Author:		Anatoli VELITCHKO
 -- Creation date: 28/10/2014
 -- Description:	Alimentation de la table dbo.AchatALActe
--- à partir des fichiers DailyOrderReport de VEL : PVL_Achats
--- Modification date: 15/12/2014
--- Modifications : Récupération des lignes invalides à cause de ClientUserID
+-- a partir des fichiers DailyOrderReport de VEL : PVL_Achats
+-- Modification date: 20/04/2015
+-- Modifications : union EQ, LP, FF
 -- =============================================
 
-begin
-
-set nocount on
-
--- On suppose que la table PVL_CatalogueOffres est alimentée en annule/remplace
-
-declare @SourceID int
-declare @SourceID_Contact int
-
-set @SourceID=10 -- PVL
-set @SourceID_Contact=1 -- Neolane
-
-if OBJECT_ID('tempdb..#T_Achats') is not null
-	drop table #T_Achats
+BEGIN
+	SET NOCOUNT ON
 	
-create table #T_Achats
-(
- ProfilID int null
-, ClientUserID nvarchar(18) null
-, OriginalID nvarchar(255) null -- Code produit d'origine
-, ProduitID int null -- Référence de produit dans le catalogue
-, SourceID int null
-, Marque int null
-, NomProduit nvarchar(255) null
-, AchatDate datetime null
-, ExProdNb int null
-, Reduction decimal(10,2) null
-, MontantAchat decimal(10,2) null
-, OrderID int null
-, ProductDescription nvarchar(255) null
-, MethodePaiement nvarchar(24) null
-, CodePromo nvarchar(24) null
-, Provenance nvarchar(255) null
-, CommercialId nvarchar(255) null
-, SalonId nvarchar(255) null
-, ModePmtHorsLigne nvarchar(255) null
-, iRecipientId nvarchar(18) null
-, ImportID int null
-)
-
-set dateformat dmy
-
-insert #T_Achats
-(
-ProfilID
-, ClientUserID
-, OriginalID
-, ProduitID
-, SourceID
-, Marque
-, NomProduit
-, AchatDate
-, ExProdNb
-, Reduction
-, MontantAchat
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, ImportID
-)
-select
-null as ProfilID
-, a.ClientUserId
-, a.ContentItemId
-, null as ProduitID
-, @SourceID
-, null as Marque
-, null as NomProduit
-, cast(a.OrderDate as datetime) as AchatDate
-, 1 as ExProdNb
-, 0 as Reduction
-, a.GrossAmount as MontantAchat
-, a.OrderID
-, a.Description
-, a.PaymentMethod
-, a.ActivationCode as CodePromo
-, a.Provenance
-, a.IdentifiantDuCommercial as CommercialId
-, a.IdentifiantDuSalon as SalonId
-, a.DetailModePaiementHorsLigne as ModePmtHorsLigne
-, a.ImportID
-from import.PVL_Achats a
-where a.FichierTS=@FichierTS
-and a.LigneStatut=0
-and a.ProductType<>N'Service'
-and a.OrderStatus=N'Completed'
-
--- Récupérer les lignes réjetées à cause de ClientUserId absent de CusCompteEFR
--- mais dont le sIdCompte est arrivé depuis dans CusCompteEFR
-
--- La table #T_FTS servira au recalcul des statistiques 
-
-if object_id(N'tempdb..#T_FTS') is not null
-	drop table #T_FTS
-
-create table #T_FTS
-(
-FichierTS nvarchar(255) null
-)
-
-if object_id(N'tempdb..#T_Recup') is not null
-	drop table #T_Recup
-
-create table #T_Recup
-(
-RejetCode bigint not null
-, ImportID int not null
-, FichierTS nvarchar(255) null
-)
-
-insert #T_Recup
-(
-RejetCode
-, ImportID
-, FichierTS
-)
-select a.RejetCode, a.ImportID, a.FichierTS from import.PVL_Achats a
-inner join import.NEO_CusCompteEFR b on a.ClientUserId=b.sIdCompte
-where a.RejetCode & power(cast(2 as bigint),3)=power(cast(2 as bigint),3)
-and b.LigneStatut<>1
-
-update a
-set RejetCode=a.RejetCode-power(cast(2 as bigint),3)
-from #T_Recup a
-
-update a 
-set RejetCode=b.RejetCode
-from import.PVL_Achats a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-update a 
-set LigneStatut=0
-from import.PVL_Achats a
-inner join #T_Recup b on a.ImportID=b.ImportID
-where b.RejetCode=0
-
-update a 
-set RejetCode=b.RejetCode
-from rejet.PVL_Achats a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-insert #T_FTS (FichierTS)
-select distinct FichierTS from #T_Recup
-
-delete a from #T_Recup a
-where a.RejetCode<>0
-
-delete a 
-from rejet.PVL_Achats a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-insert #T_Achats
-(
-ProfilID
-, ClientUserID
-, OriginalID
-, ProduitID
-, SourceID
-, Marque
-, NomProduit
-, AchatDate
-, ExProdNb
-, Reduction
-, MontantAchat
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, ImportID
-)
-select
-null as ProfilID
-, a.ClientUserId
-, a.ContentItemId
-, null as ProduitID
-, @SourceID
-, null as Marque
-, null as NomProduit
-, cast(a.OrderDate as datetime) as AchatDate
-, 1 as ExProdNb
-, 0 as Reduction
-, a.GrossAmount as MontantAchat
-, a.OrderID
-, a.Description
-, a.PaymentMethod
-, a.ActivationCode as CodePromo
-, a.Provenance
-, a.IdentifiantDuCommercial as CommercialId
-, a.IdentifiantDuSalon as SalonId
-, a.DetailModePaiementHorsLigne as ModePmtHorsLigne
-, a.ImportID
-from import.PVL_Achats a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.LigneStatut=0
-and a.ProductType<>N'Service'
-and a.OrderStatus=N'Completed'
-
-update a
-set ProduitID=b.ProduitID
-	, Marque=b.Marque
-	, NomProduit=b.NomProduit
-from #T_Achats a inner join ref.CatalogueProduits b on a.OriginalID=b.OriginalID and b.SourceID=@SourceID
-
-
-update a 
-set iRecipientId=r1.iRecipientId
-from #T_Achats a inner join 
-(select RANK() over (partition by b.sIdCompte order by cast(b.ActionID as int) desc, b.ImportID desc) as N1
-, b.sIdCompte
-, b.iRecipientId
-from import.NEO_CusCompteEFR b  
-where b.LigneStatut<>1)
-as r1 on a.ClientUserId=r1.sIdCompte
-where r1.N1=1
-
-update a
-set ProfilID=b.ProfilID
-from #T_Achats a inner join brut.Contacts b 
-on a.iRecipientID=b.OriginalID 
-and b.SourceID=@SourceID_Contact
-
-delete b from #T_Achats a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.ProfilID is null
-
-delete a from #T_Achats a
-where a.ProfilID is null
-
-insert dbo.AchatsALActe
-(
-ProfilID
-, MasterID
-, ProduitID
-, SourceID
-, Marque
-, NomProduit
-, AchatDate
-, ExProdNb
-, Reduction
-, MontantAchat
-, OrderID
-, ClientUserId
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, StatutAchat
-, Appartenance
-)
-select 
-a.ProfilID
-, a.ProfilID as MasterID
-, a.ProduitID
-, a.SourceID
-, a.Marque
-, a.NomProduit
-, a.AchatDate
-, a.ExProdNb
-, a.Reduction
-, a.MontantAchat
-, a.OrderID
-, a.ClientUserID
-, a.ProductDescription
-, a.MethodePaiement
-, a.CodePromo
-, a.Provenance
-, a.CommercialId
-, a.SalonId
-, a.ModePmtHorsLigne
-, 1 as StatutAchat -- Completed
-, c.Appartenance
-from #T_Achats a inner join ref.Misc c on a.Marque=c.CodeValN and c.TypeRef=N'MARQUE'
-left outer join dbo.AchatsALActe b
-on a.ProfilID=b.ProfilID
-and a.ProduitID=b.ProduitID
-and a.AchatDate=b.AchatDate
-where a.ProfilID is not null
-and b.ProfilID is null
-
-update a 
-set LigneStatut=99
-from import.PVL_Achats a inner join #T_Achats b on a.ImportID=b.ImportID
-where a.FichierTS=@FichierTS
-and a.LigneStatut=0
-and a.ProductType<>N'Service'
-and a.OrderStatus=N'Completed'
-
-update a 
-set LigneStatut=99
-from import.PVL_Achats a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.LigneStatut=0
-and a.ProductType<>N'Service'
-and a.OrderStatus=N'Completed'
-
-
-if OBJECT_ID('tempdb..#T_Achats') is not null
-	drop table #T_Achats
+	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
 	
-if object_id(N'tempdb..#T_Recup') is not null
-	drop table #T_Recup
+	DECLARE @SourceID INT
+	DECLARE @SourceID_Contact INT
+	DECLARE @FilePrefix NVARCHAR(5)
+	DECLARE @CusCompteTableName NVARCHAR(30)
+	DECLARE @sqlCommand NVARCHAR(500)
 	
-declare @FTS nvarchar(255)
-declare @S nvarchar(1000)
-
-declare c_fts cursor for select FichierTS from #T_FTS
-
-open c_fts
-
-fetch c_fts into @FTS
-
-while @@FETCH_STATUS=0
-begin
-
-set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''+@FTS+N''' ; '
-
-IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-	execute (@S) 
-
-fetch c_fts into @FTS
-end
-
-close c_fts
-deallocate c_fts
-
-
-		/********** AUTOCALCULATE REJECTSTATS **********/
-	IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-		EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Achats', @FichierTS
-
-
-end
+	IF OBJECT_ID('tempdb..#CusCompteTmp') IS NOT NULL
+	    DROP TABLE #CusCompteTmp
+	
+	CREATE TABLE #CusCompteTmp
+	(
+		sIdCompte        NVARCHAR(255)
+	   ,iRecipientId     NVARCHAR(18)
+	   ,ActionID         NVARCHAR(8)
+	   ,ImportID         INT
+	   ,LigneStatut      INT
+	   ,FichierTS        NVARCHAR(255)
+	)	
+	
+	IF @FichierTS LIKE N'FF%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteFF'
+	    SET @SourceID = 10 -- PVL
+	    SET @SourceID_Contact = 1 -- Neolane
+	    SET @FilePrefix = N'FF%'
+	END
+	
+	IF @FichierTS LIKE N'EQP%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
+	    SET @SourceID = 10 -- PVL
+	    SET @SourceID_Contact = 1 -- Neolane
+	    SET @FilePrefix = N'EQP%'
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    SET @SourceID = 10 -- PVL
+	    SET @FilePrefix = N'LP%'
+	END
+	
+	
+	SET @sqlCommand = 
+	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,cc.ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
+	    + @CusCompteTableName + ' AS cc'	          
+	
+	IF OBJECT_ID('tempdb..#T_Achats') IS NOT NULL
+	    DROP TABLE #T_Achats
+	
+	CREATE TABLE #T_Achats
+	(
+		ProfilID               INT NULL
+	   ,ClientUserID           NVARCHAR(18) NULL
+	   ,OriginalID             NVARCHAR(255) NULL -- Code produit d'origine
+	   ,ProduitID              INT NULL -- Reference de produit dans le catalogue
+	   ,SourceID               INT NULL
+	   ,Marque                 INT NULL
+	   ,NomProduit             NVARCHAR(255) NULL
+	   ,AchatDate              DATETIME NULL
+	   ,ExProdNb               INT NULL
+	   ,Reduction              DECIMAL(10 ,2) NULL
+	   ,MontantAchat           DECIMAL(10 ,2) NULL
+	   ,OrderID                INT NULL
+	   ,ProductDescription     NVARCHAR(255) NULL
+	   ,MethodePaiement        NVARCHAR(24) NULL
+	   ,CodePromo              NVARCHAR(24) NULL
+	   ,Provenance             NVARCHAR(255) NULL
+	   ,CommercialId           NVARCHAR(255) NULL
+	   ,SalonId                NVARCHAR(255) NULL
+	   ,ModePmtHorsLigne       NVARCHAR(255) NULL
+	   ,iRecipientId           NVARCHAR(18) NULL
+	   ,ImportID               INT NULL
+	   ,EmailAddress           NVARCHAR(255) NULL
+	   ,PmtMode                INT NULL
+	)
+	
+	SET DATEFORMAT dmy
+	
+	INSERT #T_Achats
+	  (
+	    ProfilID
+	   ,ClientUserID
+	   ,OriginalID
+	   ,ProduitID
+	   ,SourceID
+	   ,Marque
+	   ,NomProduit
+	   ,AchatDate
+	   ,ExProdNb
+	   ,Reduction
+	   ,MontantAchat
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,ImportID
+	   ,PmtMode
+	  )
+	SELECT NULL                           AS ProfilID
+	      ,a.ClientUserId
+	      ,a.ContentItemId
+	      ,NULL                           AS ProduitID
+	      ,@SourceID
+	      ,NULL                           AS Marque
+	      ,NULL                           AS NomProduit
+	      ,CAST(a.OrderDate AS DATETIME)  AS AchatDate
+	      ,1                              AS ExProdNb
+	      ,0                              AS Reduction
+	      ,a.GrossAmount                  AS MontantAchat
+	      ,a.OrderID
+	      ,a.Description
+	      ,a.PaymentMethod
+	      ,a.ActivationCode               AS CodePromo
+	      ,a.Provenance
+	      ,a.IdentifiantDuCommercial      AS CommercialId
+	      ,a.IdentifiantDuSalon           AS SalonId
+	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
+	            WHEN N'OFFLINE' THEN N'Cheque'
+	            ELSE NULL
+	       END                            AS ModePmtHorsLigne
+	      ,a.ImportID
+	      ,CASE UPPER(etl.trim(a.PaymentMethod))
+	            WHEN N'CREDITCARD' THEN 2 --'CB'
+	            WHEN N'NOTSET' THEN 8 --'Gratuit'
+	            WHEN N'OFFLINE' THEN 3 --'Cheque'
+	            WHEN N'SERVICECREDITS' THEN 7 --'Jetons'
+	       END                            AS PmtMode
+	FROM   import.PVL_Achats                 a
+	WHERE  a.FichierTS = @FichierTS
+	       AND a.LigneStatut = 0
+	       AND a.ProductType <> N'Service'
+	       AND a.OrderStatus = N'Completed'
+	
+	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR
+	-- mais dont le sIdCompte est arrive depuis dans CusCompteEFR
+	
+	-- La table #T_FTS servira au recalcul des statistiques 
+	
+	IF OBJECT_ID(N'tempdb..#T_FTS') IS NOT NULL
+	    DROP TABLE #T_FTS
+	
+	CREATE TABLE #T_FTS
+	(
+		FichierTS NVARCHAR(255) NULL
+	)
+	
+	IF OBJECT_ID(N'tempdb..#T_Recup') IS NOT NULL
+	    DROP TABLE #T_Recup
+	
+	CREATE TABLE #T_Recup
+	(
+		RejetCode     BIGINT NOT NULL
+	   ,ImportID      INT NOT NULL
+	   ,FichierTS     NVARCHAR(255) NULL
+	)
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    INSERT #T_Recup
+	      (
+	        RejetCode
+	       ,ImportID
+	       ,FichierTS
+	      )
+	    SELECT a.RejetCode
+	          ,a.ImportID
+	          ,a.FichierTS
+	    FROM   import.PVL_Achats a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserId = b.ClientUserId
+	                    AND b.Valid = 1
+	           INNER JOIN ref.CatalogueProduits c
+	                ON  a.ContentItemId = c.OriginalID
+	                    AND c.SourceID = 10
+	                    AND c.Appartenance = 2
+	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
+	           AND a.ProductType <> N'Service'
+	           AND a.OrderStatus = N'Completed'
+	END
+	ELSE
+	BEGIN
+	    INSERT #T_Recup
+	      (
+	        RejetCode
+	       ,ImportID
+	       ,FichierTS
+	      )
+	    SELECT a.RejetCode
+	          ,a.ImportID
+	          ,a.FichierTS
+	    FROM   import.PVL_Achats a
+	           INNER JOIN #CusCompteTmp b
+	                ON  a.ClientUserId = b.sIdCompte
+	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
+	           AND b.LigneStatut <> 1
+	           AND b.FichierTS LIKE @FilePrefix
+	END
+	
+	UPDATE a
+	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,3)
+	FROM   #T_Recup a
+	
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	UPDATE a
+	SET    LigneStatut = 0
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  b.RejetCode = 0
+	
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   rejet.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	INSERT #T_FTS
+	  (
+	    FichierTS
+	  )
+	SELECT DISTINCT FichierTS
+	FROM   #T_Recup
+	
+	DELETE a
+	FROM   #T_Recup a
+	WHERE  a.RejetCode <> 0
+	
+	DELETE a
+	FROM   rejet.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	INSERT #T_Achats
+	  (
+	    ProfilID
+	   ,ClientUserID
+	   ,OriginalID
+	   ,ProduitID
+	   ,SourceID
+	   ,Marque
+	   ,NomProduit
+	   ,AchatDate
+	   ,ExProdNb
+	   ,Reduction
+	   ,MontantAchat
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,ImportID,
+	   PmtMode
+	  )
+	SELECT NULL                           AS ProfilID
+	      ,a.ClientUserId
+	      ,a.ContentItemId
+	      ,NULL                           AS ProduitID
+	      ,@SourceID
+	      ,NULL                           AS Marque
+	      ,NULL                           AS NomProduit
+	      ,CAST(a.OrderDate AS DATETIME)  AS AchatDate
+	      ,1                              AS ExProdNb
+	      ,0                              AS Reduction
+	      ,a.GrossAmount                  AS MontantAchat
+	      ,a.OrderID
+	      ,a.Description
+	      ,a.PaymentMethod
+	      ,a.ActivationCode               AS CodePromo
+	      ,a.Provenance
+	      ,a.IdentifiantDuCommercial      AS CommercialId
+	      ,a.IdentifiantDuSalon           AS SalonId
+	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
+	            WHEN N'OFFLINE' THEN N'Cheque'
+	            ELSE NULL
+	       END                            AS ModePmtHorsLigne
+	      ,a.ImportID
+	      ,CASE UPPER(etl.trim(a.PaymentMethod))
+	            WHEN N'CREDITCARD' THEN 2 --'CB'
+	            WHEN N'NOTSET' THEN 8 --'Gratuit'
+	            WHEN N'OFFLINE' THEN 3 --'Cheque'
+	            WHEN N'SERVICECREDITS' THEN 7 --'Jetons'
+	       END                            AS PmtMode
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.LigneStatut = 0
+	       AND a.ProductType <> N'Service'
+	       AND a.OrderStatus = N'Completed'
+	
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    UPDATE a
+	    SET    EmailAddress = b.EmailAddress
+	    FROM   #T_Achats a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserId = b.ClientUserId
+	                    AND b.Valid = 1
+	END
+	
+	UPDATE a
+	SET    ProduitID = b.ProduitID
+	      ,Marque = b.Marque
+	      ,NomProduit = b.NomProduit
+	FROM   #T_Achats a
+	       INNER JOIN ref.CatalogueProduits b
+	            ON  a.OriginalID = b.OriginalID
+	                AND b.SourceID = @SourceID
+	
+	
+	IF @FichierTS NOT LIKE N'LP%'
+	BEGIN
+	    UPDATE a
+	    SET    iRecipientId = r1.iRecipientId
+	    FROM   #T_Achats a
+	           INNER JOIN (
+	                    SELECT RANK() OVER(
+	                               PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                               DESC
+	                              ,b.ImportID DESC
+	                           ) AS N1
+	                          ,b.sIdCompte
+	                          ,b.iRecipientId
+	                    FROM   #CusCompteTmp b
+	                    WHERE  b.LigneStatut <> 1
+	                           AND b.FichierTS LIKE @FilePrefix
+	                ) AS r1
+	                ON  a.ClientUserId = r1.sIdCompte
+	    WHERE  r1.N1 = 1
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Achats a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserId = b.ClientUserId
+	                    AND b.Valid = 1
+	END
+	ELSE
+	BEGIN
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Achats a
+	           INNER JOIN brut.Contacts b
+	                ON  a.iRecipientID = b.OriginalID
+	                    AND b.SourceID = @SourceID_Contact
+	END
+	DELETE b
+	FROM   #T_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.ProfilID IS NULL
+	
+	DELETE a
+	FROM   #T_Achats a
+	WHERE  a.ProfilID IS NULL
+	
+	INSERT dbo.AchatsALActe
+	  (
+	    ProfilID
+	   ,MasterID
+	   ,ProduitID
+	   ,SourceID
+	   ,Marque
+	   ,NomProduit
+	   ,AchatDate
+	   ,ExProdNb
+	   ,Reduction
+	   ,MontantAchat
+	   ,OrderID
+	   ,ClientUserId
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,StatutAchat
+	   ,Appartenance
+	   ,PmtMode
+	  )
+	SELECT a.ProfilID
+	      ,a.ProfilID         AS MasterID
+	      ,a.ProduitID
+	      ,a.SourceID
+	      ,a.Marque
+	      ,a.NomProduit
+	      ,a.AchatDate
+	      ,a.ExProdNb
+	      ,a.Reduction
+	      ,a.MontantAchat
+	      ,a.OrderID
+	      ,a.ClientUserID
+	      ,a.ProductDescription
+	      ,a.MethodePaiement
+	      ,a.CodePromo
+	      ,a.Provenance
+	      ,a.CommercialId
+	      ,a.SalonId
+	      ,a.ModePmtHorsLigne
+	      ,1                  AS StatutAchat -- Completed
+	      ,c.Appartenance
+	      ,a.PmtMode
+	FROM   #T_Achats a
+	       INNER JOIN ref.Misc c
+	            ON  a.Marque = c.CodeValN
+	                AND c.TypeRef = N'MARQUE'
+	       LEFT OUTER JOIN dbo.AchatsALActe b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.ProduitID = b.ProduitID
+	                AND a.AchatDate = b.AchatDate
+	WHERE  a.ProfilID IS NOT NULL
+	       AND b.ProfilID IS     NULL
+	
+	UPDATE a
+	SET    LigneStatut = 99
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Achats b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.FichierTS = @FichierTS
+	       AND a.LigneStatut = 0
+	       AND a.ProductType <> N'Service'
+	       AND a.OrderStatus = N'Completed'
+	
+	UPDATE a
+	SET    LigneStatut = 99
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.LigneStatut = 0
+	       AND a.ProductType <> N'Service'
+	       AND a.OrderStatus = N'Completed'
+	
+	
+	IF OBJECT_ID('tempdb..#T_Achats') IS NOT NULL
+	    DROP TABLE #T_Achats
+	
+	IF OBJECT_ID(N'tempdb..#T_Recup') IS NOT NULL
+	    DROP TABLE #T_Recup
+	
+	DECLARE @FTS NVARCHAR(255)
+	DECLARE @S NVARCHAR(1000)
+	
+	DECLARE c_fts CURSOR  
+	FOR
+	    SELECT FichierTS
+	    FROM   #T_FTS
+	
+	OPEN c_fts
+	
+	FETCH c_fts INTO @FTS
+	
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+	    SET @S = 
+	        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''
+	        + @FTS + N''' ; '
+	    
+	    IF (
+	           EXISTS(
+	               SELECT NULL
+	               FROM   sys.tables t
+	                      INNER JOIN sys.[schemas] s
+	                           ON  s.SCHEMA_ID = t.SCHEMA_ID
+	               WHERE  s.name = 'import'
+	                      AND t.Name = 'PVL_Achats'
+	           )
+	       )
+	        EXECUTE (@S) 
+	    
+	    FETCH c_fts INTO @FTS
+	END
+	
+	CLOSE c_fts
+	DEALLOCATE c_fts
+	
+	
+	/********** AUTOCALCULATE REJECTSTATS **********/
+	IF (
+	       EXISTS(
+	           SELECT NULL
+	           FROM   sys.tables t
+	                  INNER JOIN sys.[schemas] s
+	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+	           WHERE  s.name = 'import'
+	                  AND t.Name = 'PVL_Achats'
+	       )
+	   )
+	    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
+	            '95940C81-C7A7-4BD9-A523-445A343A9605'
+	           ,'PVL_Achats'
+	           ,@FichierTS
+END
 
 GO
 

@@ -37,6 +37,12 @@
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Abonnements_FF.sql</FullPath>
         </FileNode>
+        <FileNode Name="import.PublierPVL_Achats.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>import.PublierPVL_Achats.sql</FullPath>
+        </FileNode>
         <FileNode Name="import.PublierPVL_Achats_FF.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
@@ -44,14 +50,14 @@
           <FullPath>import.PublierPVL_Achats_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_CatalogueOffres_FF.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_CatalogueOffres_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Utilisateur_FF.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Utilisateur_FF.sql</FullPath>
         </FileNode>
