@@ -98,7 +98,7 @@ BEGIN
 	   ,ProductDescription     NVARCHAR(255) NULL
 	   ,MethodePaiement        NVARCHAR(24) NULL
 	   ,CodePromo              NVARCHAR(24) NULL
-	   ,Provenance             NVARCHAR(255) NULL
+--	   ,Provenance             NVARCHAR(255) NULL
 	   ,CommercialId           NVARCHAR(255) NULL
 	   ,SalonId                NVARCHAR(255) NULL
 	   ,ModePmtHorsLigne       NVARCHAR(255) NULL
@@ -127,7 +127,7 @@ BEGIN
 	   ,ProductDescription
 	   ,MethodePaiement
 	   ,CodePromo
-	   ,Provenance
+--	   ,Provenance
 	   ,CommercialId
 	   ,SalonId
 	   ,ModePmtHorsLigne
@@ -149,7 +149,7 @@ BEGIN
 	      ,a.Description
 	      ,a.PaymentMethod
 	      ,a.ActivationCode               AS CodePromo
-	      ,a.Provenance
+--	      ,a.Provenance
 	      ,a.IdentifiantDuCommercial      AS CommercialId
 	      ,a.IdentifiantDuSalon           AS SalonId
 	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
@@ -289,7 +289,7 @@ BEGIN
 	   ,ProductDescription
 	   ,MethodePaiement
 	   ,CodePromo
-	   ,Provenance
+--	   ,Provenance
 	   ,CommercialId
 	   ,SalonId
 	   ,ModePmtHorsLigne
@@ -311,7 +311,7 @@ BEGIN
 	      ,a.Description
 	      ,a.PaymentMethod
 	      ,a.ActivationCode               AS CodePromo
-	      ,a.Provenance
+--	      ,a.Provenance
 	      ,a.IdentifiantDuCommercial      AS CommercialId
 	      ,a.IdentifiantDuSalon           AS SalonId
 	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
@@ -441,7 +441,7 @@ BEGIN
 	      ,a.ProductDescription
 	      ,a.MethodePaiement
 	      ,a.CodePromo
-	      ,a.Provenance
+	      ,N'WEB'
 	      ,a.CommercialId
 	      ,a.SalonId
 	      ,a.ModePmtHorsLigne
