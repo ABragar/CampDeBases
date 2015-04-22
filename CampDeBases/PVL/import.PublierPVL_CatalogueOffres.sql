@@ -1,10 +1,6 @@
-/************************************************************
- * Code formatted by SoftTree SQL Assistant � v7.1.246
- * Time: 22.04.2015 13:25:00
- ************************************************************/
-
-USE [AmauryVUC]
+﻿USE [AmauryVUC]
 GO
+/****** Object:  StoredProcedure [import].[PublierPVL_CatalogueOffres]    Script Date: 22.04.2015 14:52:27 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -31,7 +27,6 @@ BEGIN
 	
 	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
 	DECLARE @FilePrefix NVARCHAR(5) = NULL
-	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
 	    SET @MarqueId = etl.GetMarqueID(N'France Football')
@@ -40,7 +35,7 @@ BEGIN
 	
 	IF @FichierTS LIKE N'EQP%'
 	BEGIN
-	    SET @MarqueId = etl.GetMarqueID(N'L''?quipe')
+	    SET @MarqueId = etl.GetMarqueID(N'L''Équipe')
 	    SET @TitrePressValue = N'L''Equipe Numerique'
 	END
 	
@@ -207,7 +202,7 @@ BEGIN
 	            ELSE NULL
 	       END AS TitreID
 	      ,CASE 
-	            WHEN a.TypeProduit LIKE N'Abonnement [a,a] tacite reconduction' THEN 
+	            WHEN a.TypeProduit LIKE N'Abonnement [à,a] tacite reconduction' THEN 
 	                 1
 	            ELSE 0
 	       END AS Recurrent
@@ -269,6 +264,9 @@ BEGIN
 	   ,Recurrent
 	   ,isCouple
 	   ,PrixInitial
+	   ,CodeOffre
+	   ,CodeOption
+	   ,CodeTarif
 	  )
 	SELECT a.OriginalID
 	      ,a.SourceID
@@ -280,6 +278,9 @@ BEGIN
 	      ,a.Recurrent
 	      ,a.isCouple
 	      ,a.PrixInitial
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
 	FROM   #T_CatAbos a
 	       LEFT OUTER JOIN ref.CatalogueAbonnements b
 	            ON  a.OriginalID = b.OriginalID
