@@ -171,10 +171,12 @@ from #T_Refunds a inner join dbo.Abonnements b on a.OrderID_Abo=b.OrderID
 update a
 set MontantAchat=a.MontantAchat-b.GrossAmount
 	, StatutAchat=2 -- Refunded
+	, ModifieTop=1
 from dbo.AchatsALActe a inner join #T_Refunds b on a.AchatID=b.AchatID
 
 update a
 set MontantAbo=a.MontantAbo-b.GrossAmount
+	, ModifieTop=1
 from dbo.Abonnements a inner join #T_Refunds b on a.AbonnementID=b.AbonnementID
 
 update a
@@ -201,10 +203,10 @@ fetch c_fts into @FTS
 while @@FETCH_STATUS=0
 begin
 
-set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''+@FTS+N''' ; '
+--set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''+@FTS+N''' ; '
 
-IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-	execute (@S) 
+--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
+--	execute (@S) 
 
 fetch c_fts into @FTS
 end
@@ -212,7 +214,7 @@ end
 close c_fts
 deallocate c_fts
 
-IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Achats', @FichierTS
+--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
+--	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Achats', @FichierTS
 
 end
