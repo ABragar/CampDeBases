@@ -12,18 +12,41 @@ AS
 -- Creation date: 21/10/2014
 -- Description:	Alimentation de la table ref.CatalogueProduits et ref.CatalogueAbonnements
 -- a partir des fichiers CatalogueOffres de VEL : PVL_CatalogueOffres
--- Modification date: 
--- Modifications :
+-- Modification date: 22/04/2015
+-- Modifications : union EQ, FF, LP
 -- =============================================
 
 BEGIN
 	SET NOCOUNT ON
+	DECLARE @SourceID INT
+	SET @SourceID = 10 -- PVL
+
+	DECLARE @MarqueId INT
+	DECLARE @TitrePressValue NVARCHAR(255)	
 	
 	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
+	DECLARE @FilePrefix NVARCHAR(5) = NULL
 	
-	DECLARE @SourceID INT
+	IF @FichierTS LIKE N'FF%'
+	BEGIN
+		SET @MarqueId = etl.GetMarqueID(N'France Football')
+		SET @TitrePressValue = N'France Football'
+	END
 	
-	SET @SourceID = 10 -- PVL
+	IF @FichierTS LIKE N'EQP%'
+	BEGIN
+		SET @MarqueId = etl.GetMarqueID(N'L''?quipe')
+		SET @TitrePressValue = N'L''Equipe Numerique'
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+		--
+		SET @MarqueId = etl.GetMarqueID(N'L''?quipe')
+	END
+	
+	IF @FilePrefix IS NULL
+	    RAISERROR('File prefix does not match any of the possible' ,16 ,1);
 	
 	-- 1) Alimentation de ref.CatalogueProduits
 	
@@ -57,7 +80,7 @@ BEGIN
 	      ,N'EUR'                      AS Devise
 	      ,a.NomOffre                  AS NomProduit
 	      ,a.TypeProduit               AS CategorieProduit
-	      ,7                           AS Marque -- L'Equipe
+	      ,@MarqueId                   AS Marque -- L'Equipe
 	FROM   import.PVL_CatalogueOffres     a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
@@ -143,9 +166,10 @@ BEGIN
 	      ,CAST(a.PrixOffre AS DECIMAL(10 ,2)) AS MontantAbo
 	      ,CAST(a.PrixOffre AS DECIMAL(10 ,2)) AS PrixInitial
 	      ,a.NomOffre                  AS OffreAbo
-	      ,7                           AS Marque -- L'Equipe
+	      ,@MarqueId                   AS Marque 
 	      ,CASE 
-	            WHEN a.TypeProduit = N'Abonnement a tacite reconduction' THEN 1
+	            WHEN a.TypeProduit LIKE N'Abonnement [a,a] tacite reconduction' THEN 
+	                 1
 	            ELSE 0
 	       END                         AS Recurrent
 	FROM   import.PVL_CatalogueOffres     a
@@ -158,7 +182,7 @@ BEGIN
 	FROM   #T_CatAbos a
 	       CROSS JOIN ref.Misc b
 	WHERE  b.TypeRef = N'TITREPRESSE'
-	       AND b.Valeur = N'L''Equipe Numerique'
+	       AND b.Valeur = @TitrePressValue
 	
 	UPDATE a
 	SET    SupportAbo = b.CodeValN
