@@ -16,6 +16,8 @@ as
 -- à partir des fichiers DailyOrderReport de VEL : PVL_Abonnements
 -- Modification date: 15/12/2014
 -- Modifications : Récupération des lignes invalides à cause de ClientUserID
+-- Modification date: 22/04/2015
+-- Modifications : Ancien mode en attendant OrderID dans les Subscriptions
 -- =============================================
 
 begin
@@ -248,14 +250,21 @@ set OrderID=b.OrderID
 from #T_Abos a inner join import.PVL_Achats b 
 on a.ServiceId=b.ServiceID 
 and a.ClientUserID=b.ClientUserId
-and a.OrderDate between dateadd(minute,-1,cast(b.OrderDate as datetime)) 
-and dateadd(minute,1,cast(b.OrderDate as datetime))
+and a.OrderDate between dateadd(minute,-10,cast(b.OrderDate as datetime)) 
+and dateadd(minute,10,cast(b.OrderDate as datetime))
 where b.LigneStatut<>1
 and b.ProductType=N'Service'
 and b.OrderStatus<>N'Refunded'
 
+
+-- On ne prend pas de lignes qui n'ont pas de correspondance dans Orders, i.e. qui n'ont pas d'OrderID
+
+delete a
+from #T_Abos a where OrderID is null
+
 update a 
 set ProductDescription=b.Description
+, MontantAbo=cast(b.GrossAmount as float)
 , MethodePaiement=b.PaymentMethod
 , CodePromo=b.ActivationCode
 , Provenance=b.Provenance
@@ -1234,10 +1243,10 @@ fetch c_fts into @FTS
 while @@FETCH_STATUS=0
 begin
 
-set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
+--set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
 
-IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
-	execute (@S) 
+--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
+--	execute (@S) 
 
 fetch c_fts into @FTS
 end
@@ -1246,9 +1255,9 @@ close c_fts
 deallocate c_fts
 
 
-	/********** AUTOCALCULATE REJECTSTATS **********/
-	IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
-		EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Abonnements', @FichierTS
+	--/********** AUTOCALCULATE REJECTSTATS **********/
+	--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
+	--	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Abonnements', @FichierTS
 
 
 end
