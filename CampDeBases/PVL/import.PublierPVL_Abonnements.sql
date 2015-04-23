@@ -1,3 +1,8 @@
+/************************************************************
+ * Code formatted by SoftTree SQL Assistant © v7.1.246
+ * Time: 23.04.2015 13:28:41
+ ************************************************************/
+
 USE [AmauryVUC]
 
 GO
@@ -1148,7 +1153,11 @@ BEGIN
 	      ,a.ProductDescription
 	      ,a.MethodePaiement
 	      ,a.CodePromo
-	      ,a.Provenance
+	      ,CASE 
+	            WHEN a.Provenance IS NOT NULL AND a.SalonId IS NOT NULL THEN a.Provenance 
+	                 + N' - ' + a.SalonId
+	            ELSE COALESCE(a.Provenance ,a.SalonId)
+	       END                 AS Provenance
 	      ,a.CommercialId
 	      ,a.SalonId
 	      ,a.ModePmtHorsLigne
