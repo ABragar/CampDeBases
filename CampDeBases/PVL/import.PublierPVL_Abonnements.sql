@@ -76,9 +76,6 @@ BEGIN
 	
 	EXEC (@sqlCommand)
 	
-	
-	
-	
 	-- Alimentation de dbo.Abonnements
 	
 	IF OBJECT_ID('tempdb..#T_Abos') IS NOT NULL
@@ -110,6 +107,7 @@ BEGIN
 	   ,IsTrial                  BIT NULL
 	    -- les champs suivants seront alimentes a partir de la table Orders
 	   ,OrderID                  NVARCHAR(16) NULL
+	   ,MontantAboAchat          DECIMAL(10 ,2) NULL
 	   ,ProductDescription       NVARCHAR(255) NULL
 	   ,MethodePaiement          NVARCHAR(24) NULL
 	   ,CodePromo                NVARCHAR(24) NULL
@@ -199,19 +197,44 @@ BEGIN
 	   ,FichierTS     NVARCHAR(255) NULL
 	)
 	
-	INSERT #T_Recup
-	  (
-	    RejetCode
-	   ,ImportID
-	   ,FichierTS
-	  )
-	SELECT a.RejetCode
-	      ,a.ImportID
-	      ,a.FichierTS
-	FROM   import.PVL_Abonnements a
-	       INNER JOIN #CusCompteTmp b
-	            ON  a.ClientUserId = b.sIdCompte
-	WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	IF @FilePrefix = N'LP%'
+	BEGIN
+	    INSERT #T_Recup
+	      (
+	        RejetCode
+	       ,ImportID
+	       ,FichierTS
+	      )
+	    SELECT RejetCode
+	          ,ImportID
+	          ,FichierTS
+	    FROM   import.PVL_Abonnements a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserId = b.ClientUserId
+	                    AND b.Valid = 1
+	           INNER JOIN ref.CatalogueAbonnements c
+	                ON  a.ServiceID = c.OriginalID
+	                    AND c.SourceID = 10
+	                    AND c.Appartenance = 2
+	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	           AND a.SubscriptionStatusID = N'2' -- Active Subscription
+	END
+	ELSE
+	BEGIN
+	    INSERT #T_Recup
+	      (
+	        RejetCode
+	       ,ImportID
+	       ,FichierTS
+	      )
+	    SELECT a.RejetCode
+	          ,a.ImportID
+	          ,a.FichierTS
+	    FROM   import.PVL_Abonnements a
+	           INNER JOIN #CusCompteTmp b
+	                ON  a.ClientUserId = b.sIdCompte
+	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	END
 	
 	UPDATE a
 	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,14)
@@ -222,6 +245,15 @@ BEGIN
 	FROM   import.PVL_Abonnements a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
+	
+	IF @FilePrefix = N'LP%'
+	BEGIN
+	    UPDATE a
+	    SET    RejetCode = b.RejetCode
+	    FROM   rejet.PVL_Abonnements a
+	           INNER JOIN #T_Recup b
+	                ON  a.ImportID = b.ImportID
+	END	
 	
 	UPDATE a
 	SET    LigneStatut = 0
@@ -326,11 +358,15 @@ BEGIN
 	
 	DELETE a
 	FROM   #T_Abos a
-	WHERE  OrderID IS NULL
+	WHERE  a.OrderID IS NULL
 	
 	UPDATE a
 	SET    ProductDescription = b.Description
 	      ,MontantAbo = CAST(b.GrossAmount AS FLOAT)
+	      ,MontantAboAchat = CASE 
+	                              WHEN @FilePrefix = N'LP%' THEN CAST(b.GrossAmount AS FLOAT)
+	                              ELSE NULL
+	                         END
 	      ,MethodePaiement = b.PaymentMethod
 	      ,CodePromo = b.ActivationCode
 	      ,Provenance = b.Provenance
@@ -341,36 +377,53 @@ BEGIN
 	       INNER JOIN import.PVL_Achats b
 	            ON  a.OrderID = b.OrderID
 	
-	UPDATE a
-	SET    iRecipientId = r1.iRecipientId
-	FROM   #T_Abos a
-	       INNER JOIN (
-	                SELECT RANK() OVER(
-	                           PARTITION BY b.sIdCompte ORDER BY b.ActionID 
-	                           DESC
-	                          ,b.ImportID DESC
-	                       )              AS N1
-	                      ,b.sIdCompte
-	                      ,b.iRecipientId
-	                FROM   #CusCompteTmp     b
-	                WHERE  b.LigneStatut <> 1
-	            ) AS r1
-	            ON  a.ClientUserId = r1.sIdCompte
-	WHERE  r1.N1 = 1
-	
-	UPDATE a
-	SET    ProfilID = b.ProfilID
-	FROM   #T_Abos a
-	       INNER JOIN brut.Contacts b
-	            ON  a.iRecipientID = b.OriginalID
-	                AND b.SourceID = @SourceID_Contact
-	
-	DELETE b
-	FROM   #T_Abos a
-	       INNER JOIN #T_Recup b
-	            ON  a.ImportID = b.ImportID
-	WHERE  a.ProfilID IS NULL
-	
+	IF @FilePrefix = N'LP%'
+	   -- Trouver le ProfilID
+	   
+	   -- SPECIFIQUE AU PARISIEN
+	   
+	   -- On retrouve le ProfilID dans brut.Contacts en passant par import.SSO_Cumul
+	   -- ainsi on retrouve la plupart des ProfilID
+	   -- Ensuite, par brut.Emails, dans l'ordre : LP SSO et Prospects, SDVP, Neolane
+	BEGIN
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Abos a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserID = b.ClientUserId
+	END
+	ELSE
+	BEGIN
+	    UPDATE a
+	    SET    iRecipientId = r1.iRecipientId
+	    FROM   #T_Abos a
+	           INNER JOIN (
+	                    SELECT RANK() OVER(
+	                               PARTITION BY b.sIdCompte ORDER BY b.ActionID 
+	                               DESC
+	                              ,b.ImportID DESC
+	                           ) AS N1
+	                          ,b.sIdCompte
+	                          ,b.iRecipientId
+	                    FROM   #CusCompteTmp b
+	                    WHERE  b.LigneStatut <> 1
+	                ) AS r1
+	                ON  a.ClientUserId = r1.sIdCompte
+	    WHERE  r1.N1 = 1
+	    
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Abos a
+	           INNER JOIN brut.Contacts b
+	                ON  a.iRecipientID = b.OriginalID
+	                    AND b.SourceID = @SourceID_Contact
+	    
+	    DELETE b
+	    FROM   #T_Abos a
+	           INNER JOIN #T_Recup b
+	                ON  a.ImportID = b.ImportID
+	    WHERE  a.ProfilID IS NULL
+	END
 	DELETE #T_Abos
 	WHERE  ProfilID IS NULL
 	
@@ -1135,6 +1188,7 @@ BEGIN
 	   ,AccountId                   NVARCHAR(16) NULL
 	   ,ClientUserId                NVARCHAR(16) NULL
 	   ,ServiceExpiry               DATETIME NULL
+	   ,UKI                         NVARCHAR(255) NULL
 	)
 	
 	INSERT #T_AboStatut
@@ -1148,6 +1202,7 @@ BEGIN
 	   ,AccountId
 	   ,ClientUserId
 	   ,ServiceExpiry
+	   ,UKI
 	  )
 	SELECT a.SubscriptionId
 	      ,a.ServiceID
@@ -1159,6 +1214,7 @@ BEGIN
 	      ,a.AccountId
 	      ,a.ClientUserId
 	      ,CAST(a.ServiceExpiry AS DATETIME) AS ServiceExpiry
+	      ,a.UKI
 	FROM   import.PVL_Abonnements a
 	WHERE  a.LigneStatut <> 1
 	
@@ -1179,6 +1235,7 @@ BEGIN
 	   ,iRecipientId                NVARCHAR(18) NULL
 	   ,ProfilID                    INT NULL
 	   ,CatalogueAbosID             INT NULL
+	   ,EmailAddress                NVARCHAR(255) NULL
 	)
 	
 	SET DATEFORMAT dmy
@@ -1194,6 +1251,7 @@ BEGIN
 	   ,AccountId
 	   ,ClientUserId
 	   ,ServiceExpiry
+	   ,EmailAddress
 	  )
 	SELECT a.SubscriptionId
 	      ,a.ServiceID
@@ -1204,6 +1262,7 @@ BEGIN
 	      ,a.AccountId
 	      ,a.ClientUserId
 	      ,a.ServiceExpiry
+	      ,a.UKI
 	FROM   #T_AboStatut a
 	       INNER JOIN (
 	                SELECT RANK() OVER(
@@ -1221,32 +1280,41 @@ BEGIN
 	IF OBJECT_ID(N'tempdb..#T_AboStatut') IS NOT NULL
 	    DROP TABLE #T_AboStatut
 	
-	UPDATE a
-	SET    iRecipientId = r1.iRecipientId
-	FROM   #T_AboDernierStatut a
-	       INNER JOIN (
-	                SELECT RANK() OVER(
-	                           PARTITION BY b.sIdCompte ORDER BY b.ActionID 
-	                           DESC
-	                          ,b.ImportID DESC
-	                       )              AS N1
-	                      ,b.sIdCompte
-	                      ,b.iRecipientId
-	                FROM   #CusCompteTmp     b
-	                WHERE  b.LigneStatut <> 1
-	            ) AS r1
-	            ON  a.ClientUserId = r1.sIdCompte
-	WHERE  r1.N1 = 1
-	
-	
-	UPDATE a
-	SET    ProfilID = b.ProfilID
-	FROM   #T_AboDernierStatut a
-	       INNER JOIN brut.Contacts b
-	            ON  a.iRecipientID = b.OriginalID
-	                AND b.SourceID = @SourceID_Contact
-	
-	
+	IF @FilePrefix = N'LP%'
+	BEGIN
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_AboDernierStatut a
+	           INNER JOIN etl.VEL_Accounts b
+	                ON  a.ClientUserId = b.ClientUserId
+	END
+	ELSE
+	BEGIN
+	    UPDATE a
+	    SET    iRecipientId = r1.iRecipientId
+	    FROM   #T_AboDernierStatut a
+	           INNER JOIN (
+	                    SELECT RANK() OVER(
+	                               PARTITION BY b.sIdCompte ORDER BY b.ActionID 
+	                               DESC
+	                              ,b.ImportID DESC
+	                           ) AS N1
+	                          ,b.sIdCompte
+	                          ,b.iRecipientId
+	                    FROM   #CusCompteTmp b
+	                    WHERE  b.LigneStatut <> 1
+	                ) AS r1
+	                ON  a.ClientUserId = r1.sIdCompte
+	    WHERE  r1.N1 = 1
+	    
+	    
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_AboDernierStatut a
+	           INNER JOIN brut.Contacts b
+	                ON  a.iRecipientID = b.OriginalID
+	                    AND b.SourceID = @SourceID_Contact
+	END	
 	DELETE #T_AboDernierStatut
 	WHERE  ProfilID IS NULL
 	
@@ -1353,7 +1421,13 @@ BEGIN
 	FROM   import.PVL_Abonnements a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
-	       AND a.SubscriptionStatusID = N'2'
+	       AND a.SubscriptionStatusID = CASE 
+	                                         WHEN @FilePrefix = N'LP%' THEN a.SubscriptionStatusID
+	                                         ELSE N'2'
+	                                    END
+	
+	--as an option	?
+	--	AND ((@FilePrefix = N'LP%') or (@FilePrefix <> N'LP%' and a.SubscriptionStatusID=N'2'))
 	
 	UPDATE a
 	SET    LigneStatut = 99
@@ -1361,7 +1435,10 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	WHERE  a.LigneStatut = 0
-	       AND a.SubscriptionStatusID = N'2'
+	       AND a.SubscriptionStatusID = CASE 
+	                                         WHEN @FilePrefix = N'LP%' THEN a.SubscriptionStatusID
+	                                         ELSE N'2'
+	                                    END
 	
 	UPDATE a
 	SET    LigneStatut = 99
