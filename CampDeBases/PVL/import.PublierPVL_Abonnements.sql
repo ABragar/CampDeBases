@@ -11,7 +11,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROC [import].[PublierPVL_Abonnements] @FichierTS NVARCHAR(255)
+CREATE PROC [import].[PublierPVL_Abonnements] @FichierTS NVARCHAR(255)
 AS
 
 -- =============================================
@@ -23,6 +23,7 @@ AS
 -- Modifications : Recuperation des lignes invalides a cause de ClientUserID
 -- Modification date: 22/04/2015
 -- Modifications : Ancien mode en attendant OrderID dans les Subscriptions
+-- Modified by :	Andrei BRAGAR
 -- Modification date: 22/04/2015
 -- Modifications : Union with EQ, FF
 -- =============================================
@@ -112,7 +113,6 @@ BEGIN
 	   ,IsTrial                  BIT NULL
 	    -- les champs suivants seront alimentes a partir de la table Orders
 	   ,OrderID                  NVARCHAR(16) NULL
-	   ,MontantAboAchat          DECIMAL(10 ,2) NULL
 	   ,ProductDescription       NVARCHAR(255) NULL
 	   ,MethodePaiement          NVARCHAR(24) NULL
 	   ,CodePromo                NVARCHAR(24) NULL
@@ -368,10 +368,6 @@ BEGIN
 	UPDATE a
 	SET    ProductDescription = b.Description
 	      ,MontantAbo = CAST(b.GrossAmount AS FLOAT)
-	      ,MontantAboAchat = CASE 
-	                              WHEN @FilePrefix = N'LP%' THEN CAST(b.GrossAmount AS FLOAT)
-	                              ELSE NULL
-	                         END
 	      ,MethodePaiement = b.PaymentMethod
 	      ,CodePromo = b.ActivationCode
 	      ,Provenance = b.Provenance
@@ -410,8 +406,7 @@ BEGIN
 	                           ) AS N1
 	                          ,b.sIdCompte
 	                          ,b.iRecipientId
-	                    FROM   #CusCompteTmp b
-	                    WHERE  b.LigneStatut <> 1
+	                    FROM   #CusCompteTmp b	       
 	                ) AS r1
 	                ON  a.ClientUserId = r1.sIdCompte
 	    WHERE  r1.N1 = 1
@@ -452,14 +447,7 @@ BEGIN
 	WHERE  CatalogueAbosID IS NULL
 	
 	-- ici, les abonnements doivent se cumuler, plusieurs lignes du meme client et meme titre en une ligne.
-	-- donc, il faut une table comme #T_Abos_Agreg
-	-- En outre, il faut gerer les remboursements dans les Achats
-	
-	-- Donc, il faut de toute facon utiliser les deux tables : PVL_Abonnements et PVL_Achats
-	
-	-- et comment ? - en utilisant la table brut.Contrats_Abos
-	-- comme je l'utilise pour Neolane
-	
+
 	INSERT brut.Contrats_Abos
 	  (
 	    ProfilID
@@ -508,10 +496,6 @@ BEGIN
 	      ,ModePmtHorsLigne
 	      ,SubscriptionStatusID
 	FROM   #T_Abos
-	
-	-- donc, dans la table brut.Contrats_Abos ajouter aussi les champs de SubscriptionStatus ? - non, pas besoin
-	-- le statut, on calcule de toute facon par rapport a la date de fin
-	-- par contre, ici, on pourrait gerer les remboursements 
 	
 	
 	IF OBJECT_ID('tempdb..#T_Brut_Abos') IS NOT NULL
@@ -1067,8 +1051,7 @@ BEGIN
 	                AND COALESCE(a.FinAboDate ,N'01-01-2078') = r1.FinAboDate
 	WHERE  N1 > 1
 	
-	-- Gerer 1 mois entre les dates de fin et date de debut des abonnements recurrents 
-	
+
 	UPDATE a
 	SET    DebutAboDate = b.DebutAboDate
 	      ,SouscriptionAboDate = b.SouscriptionAboDate
@@ -1430,25 +1413,16 @@ BEGIN
 	FROM   import.PVL_Abonnements a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
-	       AND a.SubscriptionStatusID = CASE 
-	                                         WHEN @FilePrefix = N'LP%' THEN a.SubscriptionStatusID
-	                                         ELSE N'2'
-	                                    END
-	
-	--as an option	?
-	--	AND ((@FilePrefix = N'LP%') or (@FilePrefix <> N'LP%' and a.SubscriptionStatusID=N'2'))
-	
+	       AND a.SubscriptionStatusID = N'2' 
+		
 	UPDATE a
 	SET    LigneStatut = 99
 	FROM   import.PVL_Abonnements a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	WHERE  a.LigneStatut = 0
-	       AND a.SubscriptionStatusID = CASE 
-	                                         WHEN @FilePrefix = N'LP%' THEN a.SubscriptionStatusID
-	                                         ELSE N'2'
-	                                    END
-	
+	       AND a.SubscriptionStatusID = N'2'
+	                                    	
 	UPDATE a
 	SET    LigneStatut = 99
 	FROM   import.PVL_Achats a
@@ -1478,10 +1452,10 @@ BEGIN
 	
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
-	    --set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
+	    set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
 	    
-	    --IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
-	    --	execute (@S) 
+	    IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
+	    	execute (@S) 
 	    
 	    FETCH c_fts INTO @FTS
 	END
@@ -1490,7 +1464,7 @@ BEGIN
 	DEALLOCATE c_fts
 	
 	
-	--/********** AUTOCALCULATE REJECTSTATS **********/
-	--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
-	--	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Abonnements', @FichierTS
+	/********** AUTOCALCULATE REJECTSTATS **********/
+	IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
+	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Abonnements', @FichierTS
 END
