@@ -1,32 +1,52 @@
-USE [AmauryVUC]
-
+﻿USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_CatalogueOffres_FF]    Script Date: 22.04.2015 14:54:52 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_CatalogueOffres]    Script Date: 22.04.2015 14:52:27 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-ALTER PROC [import].[PublierPVL_CatalogueOffres_FF] @FichierTS NVARCHAR(255)
+ALTER PROC [import].[PublierPVL_CatalogueOffres] @FichierTS NVARCHAR(255)
 AS
 
 -- =============================================
--- Author:		Andrey Bragar
--- Creation date: 09/04/2015
--- Description:	
--- Modification date: 
--- Modifications :
+-- Author:		Anatoli VELITCHKO
+-- Creation date: 21/10/2014
+-- Description:	Alimentation de la table ref.CatalogueProduits et ref.CatalogueAbonnements
+-- a partir des fichiers CatalogueOffres de VEL : PVL_CatalogueOffres
+-- Modification date: 22/04/2015
+-- Modifications : union EQ, FF, LP
 -- =============================================
+
 BEGIN
 	SET NOCOUNT ON
-	
-	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
-	
 	DECLARE @SourceID INT
 	SET @SourceID = 10 -- PVL
-	DECLARE @MarqueId INT
-	SET @MarqueId = 3
 	
+	DECLARE @MarqueId INT
+	DECLARE @TitrePressValue NVARCHAR(255) 
+	
+	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
+	DECLARE @FilePrefix NVARCHAR(5) = NULL
+	IF @FichierTS LIKE N'FF%'
+	BEGIN
+	    SET @MarqueId = etl.GetMarqueID(N'France Football')
+	    SET @TitrePressValue = N'France Football'
+	END
+	
+	IF @FichierTS LIKE N'EQP%'
+	BEGIN
+	    SET @MarqueId = etl.GetMarqueID(N'L''Équipe')
+	    SET @TitrePressValue = N'L''Equipe Numerique'
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    SET @FilePrefix = N'LP'
+	    SET @MarqueId = NULL
+	END
+	
+	IF @FilePrefix IS NULL
+	    RAISERROR('File prefix does not match any of the possible' ,16 ,1);
 	
 	-- 1) Alimentation de ref.CatalogueProduits
 	
@@ -54,14 +74,24 @@ BEGIN
 	   ,CategorieProduit
 	   ,Marque
 	  )
-	SELECT a.IdentifiantOffre          AS OriginalID
+	SELECT a.IdentifiantOffre  AS OriginalID
 	      ,@SourceID
 	      ,CAST(a.PrixOffre AS DECIMAL(10 ,4)) AS PrixUnitaire
-	      ,N'EUR'                      AS Devise
-	      ,a.NomOffre                  AS NomProduit
-	      ,a.TypeProduit               AS CategorieProduit
-	      ,@MarqueId                   AS Marque -- L'Equipe
-	FROM   import.PVL_CatalogueOffres     a
+	      ,N'EUR'              AS Devise
+	      ,a.NomOffre          AS NomProduit
+	      ,a.TypeProduit       AS CategorieProduit
+	      ,CASE 
+	            WHEN @FilePrefix <> N'PL' THEN @MarqueId --EQ, FF
+	            ELSE CASE --LP
+	                      WHEN (
+	                               a.NomOffre LIKE N'%AEF%'
+	                               OR a.NomOffre LIKE 
+	                                  N'%Aujourd''hui en France%'
+	                           ) THEN 2
+	                      ELSE 6
+	                 END
+	       END AS Marque
+	FROM   import.PVL_CatalogueOffres a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
 	       AND a.TypeOffre <> N'Abonnements'
@@ -138,37 +168,69 @@ BEGIN
 	   ,PrixInitial
 	   ,OffreAbo
 	   ,Marque
+	   ,TitreID
 	   ,Recurrent
+	   ,SupportAbo
 	  )
 	SELECT DISTINCT
-	       a.IdentifiantOffre          AS OriginalID
+	       a.IdentifiantOffre  AS OriginalID
 	      ,@SourceID
 	      ,CAST(a.PrixOffre AS DECIMAL(10 ,2)) AS MontantAbo
 	      ,CAST(a.PrixOffre AS DECIMAL(10 ,2)) AS PrixInitial
-	      ,a.NomOffre                  AS OffreAbo
-	      ,@MarqueId                   AS Marque -- L'Equipe
+	      ,a.NomOffre          AS OffreAbo
 	      ,CASE 
-	            WHEN a.TypeProduit like N'Abonnement [à,a] tacite reconduction' THEN 1
+	            WHEN @FilePrefix <> N'PL' THEN @MarqueId --EQ, FF
+	            ELSE CASE --LP
+	                      WHEN (
+	                               a.NomOffre LIKE N'%AEF%'
+	                               OR a.NomOffre LIKE 
+	                                  N'%Aujourd''hui en France%'
+	                           ) THEN 2
+	                      ELSE 6
+	                 END
+	       END AS Marque
+	      ,CASE 
+	            WHEN @FilePrefix = N'LP' THEN CASE 
+	                                               WHEN (
+	                                                        a.NomOffre LIKE 
+	                                                        N'%AEF%'
+	                                                        OR a.NomOffre LIKE 
+	                                                           N'%Aujourd''hui en France%'
+	                                                    ) THEN 2
+	                                               ELSE 8
+	                                          END
+	            ELSE NULL
+	       END AS TitreID
+	      ,CASE 
+	            WHEN a.TypeProduit LIKE N'Abonnement [à,a] tacite reconduction' THEN 
+	                 1
 	            ELSE 0
-	       END                         AS Recurrent
-	FROM   import.PVL_CatalogueOffres     a
+	       END AS Recurrent
+	      ,CASE 
+	            WHEN @FilePrefix = N'LP' THEN 1
+	            ELSE NULL
+	       END AS SupportAbo -- Numerique
+	FROM   import.PVL_CatalogueOffres a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
 	       AND a.TypeOffre = N'Abonnements'
 	
-	UPDATE a
-	SET    TitreID = b.CodeValN
-	FROM   #T_CatAbos a
-	       CROSS JOIN ref.Misc b
-	WHERE  b.TypeRef = N'TITREPRESSE'
-	       AND b.Valeur = N'France Football'
-	
-	UPDATE a
-	SET    SupportAbo = b.CodeValN
-	FROM   #T_CatAbos a
-	       CROSS JOIN ref.Misc b
-	WHERE  b.TypeRef = N'SUPPORTABO'
-	       AND b.Valeur = N'Numerique'
+	IF @FilePrefix <> N'LP'
+	BEGIN
+	    UPDATE a
+	    SET    TitreID = b.CodeValN
+	    FROM   #T_CatAbos a
+	           CROSS JOIN ref.Misc b
+	    WHERE  b.TypeRef = N'TITREPRESSE'
+	           AND b.Valeur = @TitrePressValue
+	    
+	    UPDATE a
+	    SET    SupportAbo = b.CodeValN
+	    FROM   #T_CatAbos a
+	           CROSS JOIN ref.Misc b
+	    WHERE  b.TypeRef = N'SUPPORTABO'
+	           AND b.Valeur = N'Numerique'
+	END
 	
 	UPDATE a
 	SET    MontantAbo = 0.00
@@ -202,6 +264,9 @@ BEGIN
 	   ,Recurrent
 	   ,isCouple
 	   ,PrixInitial
+	   ,CodeOffre
+	   ,CodeOption
+	   ,CodeTarif
 	  )
 	SELECT a.OriginalID
 	      ,a.SourceID
@@ -213,6 +278,9 @@ BEGIN
 	      ,a.Recurrent
 	      ,a.isCouple
 	      ,a.PrixInitial
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
+	      ,CAST(a.OriginalID AS NVARCHAR(8))
 	FROM   #T_CatAbos a
 	       LEFT OUTER JOIN ref.CatalogueAbonnements b
 	            ON  a.OriginalID = b.OriginalID
