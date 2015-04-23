@@ -20,7 +20,6 @@ AS
 -- Modifications : Ancien mode en attendant OrderID dans les Subscriptions
 -- Modification date: 22/04/2015
 -- Modifications : Union with EQ, FF
-
 -- =============================================
 
 BEGIN
@@ -30,9 +29,54 @@ BEGIN
 	
 	DECLARE @SourceID INT
 	DECLARE @SourceID_Contact INT
-	
 	SET @SourceID = 10 -- PVL
 	SET @SourceID_Contact = 1 -- Neolane, car on ne cree pas de contacts PVL specifiques : on transcode vers Neolane
+	
+	
+	DECLARE @FilePrefix NVARCHAR(5) = NULL
+	DECLARE @CusCompteTableName NVARCHAR(30)
+	DECLARE @sqlCommand NVARCHAR(500)
+	
+	IF @FichierTS LIKE N'FF%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteFF'
+	    SET @FilePrefix = N'FF%'
+	END
+	
+	IF @FichierTS LIKE N'EQP%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
+	    SET @FilePrefix = N'EQP%'
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    SET @FilePrefix = N'LP%'
+	END
+	
+	IF @FilePrefix IS NULL
+	    RAISERROR('File prefix does not match any of the possible' ,16 ,1);
+	
+	IF OBJECT_ID('tempdb..#CusCompteTmp') IS NOT NULL
+	    DROP TABLE #CusCompteTmp
+	
+	CREATE TABLE #CusCompteTmp
+	(
+		sIdCompte        NVARCHAR(255)
+	   ,iRecipientId     NVARCHAR(18)
+	   ,ActionID         INT
+	   ,ImportID         INT
+	   ,LigneStatut      INT
+	   ,FichierTS        NVARCHAR(255)
+	)	
+	
+	SET @sqlCommand = 
+	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,CAST(cc.ActionID AS INT) as ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
+	    + @CusCompteTableName + ' AS cc where cc.LigneStatut<>1'	          
+	
+	EXEC (@sqlCommand)
+	
+	
 	
 	
 	-- Alimentation de dbo.Abonnements
@@ -165,10 +209,9 @@ BEGIN
 	      ,a.ImportID
 	      ,a.FichierTS
 	FROM   import.PVL_Abonnements a
-	       INNER JOIN import.NEO_CusCompteEFR b
+	       INNER JOIN #CusCompteTmp b
 	            ON  a.ClientUserId = b.sIdCompte
 	WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
-	       AND b.LigneStatut <> 1
 	
 	UPDATE a
 	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,14)
@@ -303,13 +346,13 @@ BEGIN
 	FROM   #T_Abos a
 	       INNER JOIN (
 	                SELECT RANK() OVER(
-	                           PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                           PARTITION BY b.sIdCompte ORDER BY b.ActionID 
 	                           DESC
 	                          ,b.ImportID DESC
-	                       ) AS N1
+	                       )              AS N1
 	                      ,b.sIdCompte
 	                      ,b.iRecipientId
-	                FROM   import.NEO_CusCompteEFR b
+	                FROM   #CusCompteTmp     b
 	                WHERE  b.LigneStatut <> 1
 	            ) AS r1
 	            ON  a.ClientUserId = r1.sIdCompte
@@ -1183,13 +1226,13 @@ BEGIN
 	FROM   #T_AboDernierStatut a
 	       INNER JOIN (
 	                SELECT RANK() OVER(
-	                           PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                           PARTITION BY b.sIdCompte ORDER BY b.ActionID 
 	                           DESC
 	                          ,b.ImportID DESC
-	                       ) AS N1
+	                       )              AS N1
 	                      ,b.sIdCompte
 	                      ,b.iRecipientId
-	                FROM   import.NEO_CusCompteEFR b
+	                FROM   #CusCompteTmp     b
 	                WHERE  b.LigneStatut <> 1
 	            ) AS r1
 	            ON  a.ClientUserId = r1.sIdCompte
