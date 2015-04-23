@@ -6,1258 +6,1362 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER proc [import].[PublierPVL_Abonnements] @FichierTS nvarchar(255)
-as
+ALTER PROC [import].[PublierPVL_Abonnements] @FichierTS NVARCHAR(255)
+AS
 
 -- =============================================
 -- Author:		Anatoli VELITCHKO
 -- Creation date: 29/10/2014
 -- Description:	Alimentation de la table dbo.Abonnements
--- à partir des fichiers DailyOrderReport de VEL : PVL_Abonnements
+-- a partir des fichiers DailyOrderReport de VEL : PVL_Abonnements
 -- Modification date: 15/12/2014
--- Modifications : Récupération des lignes invalides à cause de ClientUserID
+-- Modifications : Recuperation des lignes invalides a cause de ClientUserID
 -- Modification date: 22/04/2015
 -- Modifications : Ancien mode en attendant OrderID dans les Subscriptions
+-- Modification date: 22/04/2015
+-- Modifications : Union with EQ, FF
+
 -- =============================================
 
-begin
-
-set nocount on
-
--- On suppose que la table PVL_CatalogueOffres est alimentée en annule/remplace
-
-declare @SourceID int
-declare @SourceID_Contact int
-
-set @SourceID=10 -- PVL
-set @SourceID_Contact=1 -- Neolane, car on ne crée pas de contacts PVL spécifiques : on transcode vers Neolane
-
-
--- Alimentation de dbo.Abonnements
-
-if OBJECT_ID('tempdb..#T_Abos') is not null
-	drop table #T_Abos
-
-create table #T_Abos
-(
- ProfilID int null
-, SourceID int null
-, Marque int null
-, ClientUserID nvarchar(18) null
-, iRecipientID nvarchar(18) null
-, OriginalID nvarchar(255) null -- Code produit d'origine
-, CatalogueAbosID int null -- Référence de produit dans le catalogue
-, NomAbo nvarchar(255) null -- Libellé du catalogue
-, OrderDate datetime null
-, ServiceID nvarchar(18) null
-, SouscriptionAboDate datetime null
-, DebutAboDate datetime null
-, FinAboDate datetime null
-, ExAboSouscrNb int not null default(0)
-, RemiseAbo decimal(10,2) null
-, MontantAbo decimal(10,2) null 
-, Devise nvarchar(16) null
-, Recurrent bit null
-, SubscriptionStatus nvarchar(255) null
-, SubscriptionStatusID int null
-, ServiceGroup nvarchar(255) null
-, IsTrial bit null
--- les champs suivants seront alimentés à partir de la table Orders
-, OrderID nvarchar(16) null
-, ProductDescription nvarchar(255) null
-, MethodePaiement nvarchar(24) null
-, CodePromo nvarchar(24) null
-, Provenance nvarchar(255) null
-, CommercialId nvarchar(255) null
-, SalonId nvarchar(255) null
-, ModePmtHorsLigne nvarchar(255) null
-, ImportID int null
-, Reprise bit not null default(0)
-)
-
-set dateformat dmy
-
-insert #T_Abos
-(
- ProfilID
-, SourceID
-, Marque
-, ClientUserID
-, OriginalID
-, CatalogueAbosID
-, NomAbo
-, OrderDate
-, ServiceID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, ExAboSouscrNb
-, RemiseAbo
-, MontantAbo
-, Devise
-, Recurrent
-, SubscriptionStatus
-, SubscriptionStatusID
-, ServiceGroup
-, IsTrial
-, ImportID
-)
-select 
-null as ProfilID
-, @SourceID
-, null as Marque
-, a.ClientUserID
-, a.ServiceId as OriginalID
-, null as CatalogueAbosID
-, null as NomAbo
-, cast(a.SubscriptionLastUpdated as datetime) as OrderDate
-, a.ServiceID
-, cast(a.SubscriptionCreated as datetime) as SouscriptionAboDate
-, cast(a.SubscriptionLastUpdated as datetime) as DebutAboDate
-, a.ServiceExpiry as FinAboDate
-, 1 as ExAboSouscrNb
-, 0 as RemiseAbo
-, a.ExplicitPrice as MontantAbo
-, a.ExplicitCurrency as Devise
-, null as Recurrent
-, a.SubscriptionStatus
-, cast(a.SubscriptionStatusID as int) as SubscriptionStatusID
-, a.ServiceGroup
-, case when a.IsTrial=N'True' then 1 else 0 end
-, a.ImportID
-from import.PVL_Abonnements a
-where a.FichierTS=@FichierTS
-and a.LigneStatut=0
-and a.SubscriptionStatusID=N'2' -- Active Subscription
-
--- Récupérer les lignes réjetées à cause de ClientUserId absent de CusCompteEFR
--- mais dont le sIdCompte est arrivé depuis dans CusCompteEFR
-
-if object_id(N'tempdb..#T_FTS') is not null
-	drop table #T_FTS
-
-create table #T_FTS
-(
-FichierTS nvarchar(255) null
-)
-
-if object_id(N'tempdb..#T_Recup') is not null
-	drop table #T_Recup
-
-create table #T_Recup
-(
-RejetCode bigint not null
-, ImportID int not null
-, FichierTS nvarchar(255) null
-)
-
-insert #T_Recup
-(
-RejetCode
-, ImportID
-, FichierTS
-)
-select a.RejetCode, a.ImportID, a.FichierTS from import.PVL_Abonnements a
-inner join import.NEO_CusCompteEFR b on a.ClientUserId=b.sIdCompte
-where a.RejetCode & power(cast(2 as bigint),14)=power(cast(2 as bigint),14)
-and b.LigneStatut<>1
-
-update a
-set RejetCode=a.RejetCode-power(cast(2 as bigint),14)
-from #T_Recup a
-
-update a 
-set RejetCode=b.RejetCode
-from import.PVL_Abonnements a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-update a 
-set LigneStatut=0
-from import.PVL_Abonnements a
-inner join #T_Recup b on a.ImportID=b.ImportID
-where b.RejetCode=0
-
-update a 
-set RejetCode=b.RejetCode
-from rejet.PVL_Abonnements a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-insert #T_FTS (FichierTS)
-select distinct FichierTS from #T_Recup
-
-delete a from #T_Recup a
-where a.RejetCode<>0
-
-delete a 
-from rejet.PVL_Abonnements a
-inner join #T_Recup b on a.ImportID=b.ImportID
-
-insert #T_Abos
-(
- ProfilID
-, SourceID
-, Marque
-, ClientUserID
-, OriginalID
-, CatalogueAbosID
-, NomAbo
-, OrderDate
-, ServiceID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, ExAboSouscrNb
-, RemiseAbo
-, MontantAbo
-, Devise
-, Recurrent
-, SubscriptionStatus
-, SubscriptionStatusID
-, ServiceGroup
-, IsTrial
-, ImportID
-)
-select 
-null as ProfilID
-, @SourceID
-, null as Marque
-, a.ClientUserID
-, a.ServiceId as OriginalID
-, null as CatalogueAbosID
-, null as NomAbo
-, cast(a.SubscriptionLastUpdated as datetime) as OrderDate
-, a.ServiceID
-, cast(a.SubscriptionCreated as datetime) as SouscriptionAboDate
-, cast(a.SubscriptionLastUpdated as datetime) as DebutAboDate
-, a.ServiceExpiry as FinAboDate
-, 1 as ExAboSouscrNb
-, 0 as RemiseAbo
-, a.ExplicitPrice as MontantAbo
-, a.ExplicitCurrency as Devise
-, null as Recurrent
-, a.SubscriptionStatus
-, cast(a.SubscriptionStatusID as int) as SubscriptionStatusID
-, a.ServiceGroup
-, case when a.IsTrial=N'True' then 1 else 0 end
-, a.ImportID
-from import.PVL_Abonnements a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.LigneStatut=0
-and a.SubscriptionStatusID=N'2' -- Active Subscription
-
-
-update a
-set OrderID=b.OrderID
-from #T_Abos a inner join import.PVL_Achats b 
-on a.ServiceId=b.ServiceID 
-and a.ClientUserID=b.ClientUserId
-and a.OrderDate between dateadd(minute,-10,cast(b.OrderDate as datetime)) 
-and dateadd(minute,10,cast(b.OrderDate as datetime))
-where b.LigneStatut<>1
-and b.ProductType=N'Service'
-and b.OrderStatus<>N'Refunded'
-
-
--- On ne prend pas de lignes qui n'ont pas de correspondance dans Orders, i.e. qui n'ont pas d'OrderID
-
-delete a
-from #T_Abos a where OrderID is null
-
-update a 
-set ProductDescription=b.Description
-, MontantAbo=cast(b.GrossAmount as float)
-, MethodePaiement=b.PaymentMethod
-, CodePromo=b.ActivationCode
-, Provenance=b.Provenance
-, CommercialId=b.IdentifiantDuCommercial
-, SalonId=b.IdentifiantDuSalon
-, ModePmtHorsLigne=b.DetailModePaiementHorsLigne
-from #T_Abos a
-inner join import.PVL_Achats b on a.OrderID=b.OrderID
-
-update a 
-set iRecipientId=r1.iRecipientId
-from #T_Abos a inner join 
-(select RANK() over (partition by b.sIdCompte order by cast(b.ActionID as int) desc, b.ImportID desc) as N1
-, b.sIdCompte
-, b.iRecipientId
-from import.NEO_CusCompteEFR b  
-where b.LigneStatut<>1)
-as r1 on a.ClientUserId=r1.sIdCompte
-where r1.N1=1
-
-update a
-set ProfilID=b.ProfilID
-from #T_Abos a inner join brut.Contacts b 
-on a.iRecipientID=b.OriginalID 
-and b.SourceID=@SourceID_Contact
-
-delete b from #T_Abos a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.ProfilID is null
-
-delete #T_Abos where ProfilID is null
-
-update a
-set CatalogueAbosID=b.CatalogueAbosID
-, NomAbo=b.OffreAbo
-, Marque=b.Marque
-, Recurrent=b.Recurrent
-from #T_Abos a inner join ref.CatalogueAbonnements b 
-on a.OriginalID=b.OriginalID 
-and a.SourceID=b.SourceID
-
-delete b from #T_Abos a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.CatalogueAbosID is null
-
-delete #T_Abos where CatalogueAbosID is null
-
--- ici, les abonnements doivent se cumuler, plusieurs lignes du même client et même titre en une ligne.
--- donc, il faut une table comme #T_Abos_Agreg
--- En outre, il faut gérer les remboursements dans les Achats
-
--- Donc, il faut de toute façon utiliser les deux tables : PVL_Abonnements et PVL_Achats
-
--- et comment ? - en utilisant la table brut.Contrats_Abos
--- comme je l'utilise pour Neolane
-
-insert brut.Contrats_Abos
-(
-ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select 
-ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-from #T_Abos
-
--- donc, dans la table brut.Contrats_Abos ajouter aussi les champs de SubscriptionStatus ? - non, pas besoin
--- le statut, on calcule de toute façon par rapport à la date de fin
--- par contre, ici, on pourrait gérer les remboursements 
-
-
-if OBJECT_ID('tempdb..#T_Brut_Abos') is not null
-	drop table #T_Brut_Abos
-
-create table #T_Brut_Abos
-(
-ContratID int not null
-, MasterAboID int null -- = AbonnementID de abo.Abonnements
-, ProfilID int not null
-, SourceID int null
-, CatalogueAbosID int null
-, SouscriptionAboDate datetime null
-, DebutAboDate datetime null
-, FinAboDate datetime null
-, MontantAbo decimal(10,2)
-, ExAboSouscrNb int null
-, Devise nvarchar(16) null
-, Recurrent bit null
-, ContratID_Regroup int null
-, ClientUserId nvarchar(18) null
-, ServiceGroup nvarchar(255) null
-, IsTrial bit null
-, OrderID nvarchar(16) null
-, ProductDescription nvarchar(255) null
-, MethodePaiement nvarchar(24) null
-, CodePromo nvarchar(24) null
-, Provenance nvarchar(255) null
-, CommercialId nvarchar(255) null
-, SalonId nvarchar(255) null
-, ModePmtHorsLigne nvarchar(255) null
-, SubscriptionStatusID int null
-)
-
-insert #T_Brut_Abos 
-(
-ContratID
-, MasterAboID 
-, ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select 
-a.ContratID
-, a.MasterAboID 
-, a.ProfilID
-, a.SourceID
-, a.CatalogueAbosID
-, a.SouscriptionAboDate
-, a.DebutAboDate
-, a.FinAboDate
-, a.MontantAbo
-, a.ExAboSouscrNb
-, a.Devise
-, a.Recurrent
-, a.ClientUserId
-, a.ServiceGroup
-, a.IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-from brut.Contrats_Abos a
-where a.ModifieTop=1 -- Les lignes qui viennent d'être insérées
-and a.SourceID=@SourceID -- PVL
-and a.Recurrent=1
-
-create index ind_01_T_Brut_Abos on #T_Brut_Abos (ProfilID, CatalogueAbosID)
-
-insert #T_Brut_Abos
-(
-ContratID
-, MasterAboID 
-, ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select 
-a.ContratID
-, a.MasterAboID 
-, a.ProfilID
-, a.SourceID
-, a.CatalogueAbosID
-, a.SouscriptionAboDate
-, a.DebutAboDate
-, a.FinAboDate
-, a.MontantAbo
-, a.ExAboSouscrNb
-, a.Devise
-, a.Recurrent
-, a.ClientUserId
-, a.ServiceGroup
-, a.IsTrial
-, a.OrderID
-, a.ProductDescription
-, a.MethodePaiement
-, a.CodePromo
-, a.Provenance
-, a.CommercialId
-, a.SalonId
-, a.ModePmtHorsLigne
-, a.SubscriptionStatusID
-from brut.Contrats_Abos a inner join #T_Brut_Abos b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-where a.ModifieTop=0 -- Les lignes anciennes du même profil, abonnements récurrents
-and a.SourceID=@SourceID -- PVL
-and a.Recurrent=1
-
-create table #T_Abo_Fusion
-(
-N1 int null
-, ContratID int null
-, ProfilID int null
-, CatalogueAbosID int null
-, DebutAboDate datetime null
-, FinAboDate datetime null
-, DatePrevFin datetime null
-, Ddiff int null
-, ContratID_Regroup int null
-)
-
-insert #T_Abo_Fusion
-(
-N1
-, ContratID
-, ProfilID
-, CatalogueAbosID
-, DebutAboDate
-, FinAboDate
-)
-select
-RANK() over (partition by ProfilID,CatalogueAbosID order by SouscriptionAboDate asc,DebutAboDate asc,newid()) as N1 
-, ContratID
-, ProfilID
-, CatalogueAbosID
-, DebutAboDate
-, FinAboDate
-from #T_Brut_Abos
-
-update a set DatePrevFin=b.FinAboDate
-from #T_Abo_Fusion a 
-left outer join #T_Abo_Fusion b 
-on a.ProfilID=b.ProfilID 
-and a.CatalogueAbosID=b.CatalogueAbosID 
-and b.N1=a.N1-1
-
-update #T_Abo_Fusion set ContratID_Regroup=ContratID where DatePrevFin is null and ContratID_Regroup is null 
-
-update #T_Abo_Fusion set Ddiff=DATEDIFF(day,DatePrevFin,DebutAboDate) where DatePrevFin is not null
-
-update #T_Abo_Fusion set ContratID_Regroup=ContratID where Ddiff>181 and ContratID_Regroup is null
-
-declare @R as int
-
-select @R = 1
-
-while (@R>0)
-begin
-
-update a set ContratID_Regroup=b.ContratID_Regroup
-from #T_Abo_Fusion a inner join #T_Abo_Fusion b on a.ProfilID=b.ProfilID 
-and a.CatalogueAbosID=b.CatalogueAbosID 
-and b.N1=a.N1-1
-where a.ContratID_Regroup is null
-and a.DDiff<=181 -- Intervalle ne doit pas être supérieur à 6 mois pour qu'on considère l'abonnement non interrompu
-and b.ContratID_Regroup is not null
-select @R=@@ROWCOUNT
-
-end
-
-update a
-set ContratID_Regroup=b.ContratID_Regroup
-from #T_Brut_Abos a 
-inner join #T_Abo_Fusion b 
-on a.ContratID=b.ContratID
-
-if OBJECT_ID('tempdb..#T_Abos_MinMax') is not null
-	drop table #T_Abos_MinMax
-
-create table #T_Abos_MinMax 
-(
-ProfilID int null
-, CatalogueAbosID int null
-, ContratID_Regroup int null
-, ContratID_Min int null
-, DebutAboDate_Min datetime null
-, DebutAboDate_Max datetime null
-, MontantAbo_Sum decimal(10,2) null
-)
-
-insert #T_Abos_MinMax
-(
-ProfilID
-, CatalogueAbosID
-, ContratID_Regroup
-, ContratID_Min
-, DebutAboDate_Min
-, DebutAboDate_Max
-, MontantAbo_Sum
-)
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, ContratID_Regroup
-, min(a.ContratID) as ContratID_Min
-, min(a.DebutAboDate) as DebutAboDate_Min
-, max(a.DebutAboDate) as DebutAboDate_Max
-, sum(a.MontantAbo) as MontantAbo_Sum
-from #T_Brut_Abos a
-group by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-
-create index ind_01_T_Abos_MinMax on #T_Abos_MinMax (ProfilID, CatalogueAbosID)
-
-
-update a
-set MasterAboID=b.ContratID_Min
-from #T_Brut_Abos a 
-inner join #T_Abos_MinMax b 
-on a.ContratID_Regroup=b.ContratID_Regroup
-and a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-
-if OBJECT_ID('tempdb..#T_Abos_Agreg') is not null
-	drop table #T_Abos_Agreg
-
-create table #T_Abos_Agreg
-(
-MasterAboID int null -- = AbonnementID de abo.Abonnements
-, ProfilID int not null
-, MasterID int null
-, SourceID int null
-, Marque int null
-, CatalogueAbosID int null
-, SouscriptionAboDate datetime null
-, DebutAboDate datetime null
-, FinAboDate datetime null
-, MontantAbo decimal(10,2)
-, ExAboSouscrNb int null
-, Devise nvarchar(16) null
-, Recurrent bit null
-, ContratID_Regroup int null
-, ClientUserId nvarchar(18) null
-, ServiceGroup nvarchar(255) null
-, IsTrial bit null
-, OrderID nvarchar(16) null
-, ProductDescription nvarchar(255) null
-, MethodePaiement nvarchar(24) null
-, CodePromo nvarchar(24) null
-, Provenance nvarchar(255) null
-, CommercialId nvarchar(255) null
-, SalonId nvarchar(255) null
-, ModePmtHorsLigne nvarchar(255) null
-, SubscriptionStatusID int null
-)
-
-insert #T_Abos_Agreg
-(
-MasterAboID
-, ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ContratID_Regroup
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select distinct
-b.ContratID_Min as MasterAboID 
-, a.ProfilID
-, a.SourceID
-, a.CatalogueAbosID
-, a.SouscriptionAboDate
-, a.DebutAboDate
-, a.FinAboDate
-, b.MontantAbo_Sum
-, a.ExAboSouscrNb
-, a.Devise
-, a.Recurrent
-, a.ContratID_Regroup
-, a.ClientUserId
-, a.ServiceGroup
-, a.IsTrial
-, a.OrderID
-, a.ProductDescription
-, a.MethodePaiement
-, a.CodePromo
-, a.Provenance
-, a.CommercialId
-, a.SalonId
-, a.ModePmtHorsLigne
-, a.SubscriptionStatusID
-from #T_Brut_Abos a inner join #T_Abos_MinMax b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.DebutAboDate=b.DebutAboDate_Max
-and a.ContratID_Regroup=b.ContratID_Regroup
-
--- Mettre à jour les informations avec la dernière valeur renseignée et non celle de la dernière ligne dans le temps
-
--- le valeurs sont : SubscriptionStatusID
-
--- ProductDescription
--- MethodePaiement
--- CodePromo
--- Provenance
--- CommercialId
--- SalonId
--- ModePmtHorsLigne
-
-update a 
-set ProductDescription=b.ProductDescription
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.ProductDescription
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.ProductDescription is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set MethodePaiement=b.MethodePaiement
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.MethodePaiement
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.MethodePaiement is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set CodePromo=b.CodePromo
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.CodePromo
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.CodePromo is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set Provenance=b.Provenance
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.Provenance
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.Provenance is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set CommercialId=b.CommercialId
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.CommercialId
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.CommercialId is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set SalonId=b.SalonId
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.SalonId
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.SalonId is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
-update a 
-set ModePmtHorsLigne=b.ModePmtHorsLigne
-from #T_Abos_Agreg a inner join (
-select 
-a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup
-, a.ModePmtHorsLigne
-, rank() over (partition by a.ProfilID
-, a.CatalogueAbosID
-, a.ContratID_Regroup order by a.DebutAboDate desc) as N1
-from #T_Brut_Abos a
-where a.ModePmtHorsLigne is not null
-) as b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.MasterAboID=b.ContratID_Regroup
-where b.N1=1
-
--- Eliminer les doublons éventuels dans #T_Abos_Agreg
--- Les doublons sont possibles si deux lignes ont la même date de début
-
-delete a
-from #T_Abos_Agreg a inner join (select RANK() over (partition by MasterAboID,DebutAboDate order by coalesce(b.FinAboDate,N'01-01-2078') desc, NEWID()) as N1
-, b.MasterAboID
-, b.DebutAboDate
-, coalesce(b.FinAboDate,N'01-01-2078') as FinAboDate
-from #T_Abos_Agreg b ) as r1 
-	on a.MasterAboID=r1.MasterAboID 
-	and cast(a.DebutAboDate as date)=cast(r1.DebutAboDate as date) -- on élimine ceux qui commencent le même jour, et pas seulement à la seconde près
-	and coalesce(a.FinAboDate,N'01-01-2078')=r1.FinAboDate
-where N1>1
-
--- Gérer 1 mois entre les dates de fin et date de début des abonnements récurrents 
-
-update a
-set DebutAboDate=b.DebutAboDate
-		, SouscriptionAboDate=b.SouscriptionAboDate
-from #T_Abos_Agreg a 
-inner join #T_Brut_Abos b
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-inner join #T_Abos_MinMax c
-on b.ProfilID=c.ProfilID
-and b.CatalogueAbosID=c.CatalogueAbosID
-and b.DebutAboDate=c.DebutAboDate_Min
-and a.ContratID_Regroup=c.ContratID_Regroup
-
-
-if OBJECT_ID('tempdb..#T_Abos_MinMax') is not null
-	drop table #T_Abos_MinMax
-
--- Propager MasterAboID dans brut :
-
-update a
-set MasterAboID=b.MasterAboID
-from brut.Contrats_Abos a inner join #T_Brut_Abos b
-on a.ContratID=b.ContratID
-where a.ModifieTop=1
-
-if OBJECT_ID('tempdb..#T_Brut_Abos') is not null
-	drop table #T_Brut_Abos
-
-update a
-set MasterAboID=a.ContratID
-from brut.Contrats_Abos a where a.MasterAboID is null
-and a.ModifieTop=1
-and SourceID=@SourceID 
-
--- Insérer dans #T_Abos_Agreg les lignes des abonnements non-récurrents
-
-insert #T_Abos_Agreg
-(
-MasterAboID
-, ProfilID
-, SourceID
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ContratID_Regroup
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select 
-a.ContratID 
-, a.ProfilID
-, a.SourceID
-, a.CatalogueAbosID
-, a.SouscriptionAboDate
-, a.DebutAboDate
-, a.FinAboDate
-, a.MontantAbo
-, a.ExAboSouscrNb
-, a.Devise
-, a.Recurrent
-, a.ContratID as ContratID_Regroup
-, a.ClientUserId
-, a.ServiceGroup
-, a.IsTrial
-, a.OrderID
-, a.ProductDescription
-, a.MethodePaiement
-, a.CodePromo
-, a.Provenance
-, a.CommercialId
-, a.SalonId
-, a.ModePmtHorsLigne
-, a.SubscriptionStatusID
-from brut.Contrats_Abos a
-where ModifieTop=1 -- Les lignes qui viennent d'être insérées
-and SourceID=@SourceID -- Neolane
-and a.Recurrent=0 -- Abonnements non-récurrents
-
--- Renseigner la marque
-
-update a
-set Marque=b.Marque
-from #T_Abos_Agreg a inner join ref.CatalogueAbonnements b
-on a.CatalogueAbosID=b.CatalogueAbosID
-
-create index ind_03_T_Abonnements_Agreg on #T_Abos_Agreg (MasterAboID)
-
-update #T_Abos_Agreg
-set MasterID=ProfilID
-where MasterID is null
-
--- Renseigner = metrre à jour le SubscriptionStatusID avec le statut dernier en date qui peut ne pas être "Active Subscription"
-
-if object_id(N'tempdb..#T_AboStatut') is not null
-	drop table #T_AboStatut
-
-create table #T_AboStatut
-(
-SubscriptionId nvarchar(16) null
-, ServiceID nvarchar(16) null
-, SubscriptionCreated datetime null
-, SubscriptionLastUpdated datetime null
-, SubscriptionStatusID int null
-, SubscriptionStatus nvarchar(255) null
-, AccountId	nvarchar(16) null
-, ClientUserId nvarchar(16) null
-, ServiceExpiry datetime null
-)
-
-insert #T_AboStatut
-(
-SubscriptionId
-, ServiceID
-, SubscriptionCreated
-, SubscriptionLastUpdated
-, SubscriptionStatusID
-, SubscriptionStatus
-, AccountId
-, ClientUserId
-, ServiceExpiry
-)
-select 
-a.SubscriptionId
-, a.ServiceID
-, cast(a.SubscriptionCreated as datetime) as SubscriptionCreated
-, cast(a.SubscriptionLastUpdated as datetime) as SubscriptionLastUpdated
-, cast(a.SubscriptionStatusID as int) as SubscriptionStatusID
-, a.SubscriptionStatus
-, a.AccountId
-, a.ClientUserId
-, cast(a.ServiceExpiry as datetime) as ServiceExpiry
-from import.PVL_Abonnements a 
-where a.LigneStatut<>1
-
-if object_id(N'tempdb..#T_AboDernierStatut') is not null
-	drop table #T_AboDernierStatut
-
-create table #T_AboDernierStatut
-(
-SubscriptionId nvarchar(16) null
-, ServiceID nvarchar(16) null
-, SubscriptionCreated datetime null
-, SubscriptionLastUpdated datetime null
-, SubscriptionStatusID int null
-, SubscriptionStatus nvarchar(255) null
-, AccountId	nvarchar(16) null
-, ClientUserId nvarchar(16) null
-, ServiceExpiry datetime null
-, iRecipientId nvarchar(18) null
-, ProfilID int null
-, CatalogueAbosID int null
-)
-
-set dateformat dmy
-
-insert #T_AboDernierStatut
-(
-SubscriptionId
-, ServiceID
-, SubscriptionCreated
-, SubscriptionLastUpdated
-, SubscriptionStatusID
-, SubscriptionStatus
-, AccountId
-, ClientUserId
-, ServiceExpiry
-)
-select 
-a.SubscriptionId
-, a.ServiceID
-, a.SubscriptionCreated
-, a.SubscriptionLastUpdated
-, a.SubscriptionStatusID
-, a.SubscriptionStatus
-, a.AccountId
-, a.ClientUserId
-, a.ServiceExpiry
-from #T_AboStatut a inner join (
-select 
-rank() over (partition by a.SubscriptionId order by a.SubscriptionLastUpdated desc) as N1
-, SubscriptionId
-, SubscriptionLastUpdated
-from #T_AboStatut a 
-) as r1 on a.SubscriptionId=r1.SubscriptionId and a.SubscriptionLastUpdated=r1.SubscriptionLastUpdated
-and r1.N1=1
-
-if object_id(N'tempdb..#T_AboStatut') is not null
-	drop table #T_AboStatut
-
-update a 
-set iRecipientId=r1.iRecipientId
-from #T_AboDernierStatut a inner join 
-(select RANK() over (partition by b.sIdCompte order by cast(b.ActionID as int) desc, b.ImportID desc) as N1
-, b.sIdCompte
-, b.iRecipientId
-from import.NEO_CusCompteEFR b  
-where b.LigneStatut<>1)
-as r1 on a.ClientUserId=r1.sIdCompte
-where r1.N1=1
-
-
-update a
-set ProfilID=b.ProfilID
-from #T_AboDernierStatut a inner join brut.Contacts b 
-on a.iRecipientID=b.OriginalID 
-and b.SourceID=@SourceID_Contact
-
-
-delete #T_AboDernierStatut where ProfilID is null
-
-update a
-set CatalogueAbosID=b.CatalogueAbosID
-from #T_AboDernierStatut a inner join ref.CatalogueAbonnements b 
-on a.ServiceID=b.OriginalID 
-and b.SourceID=@SourceID
-
-delete #T_AboDernierStatut where CatalogueAbosID is null
-
-create index idx01_T_AboDernierStatut on #T_AboDernierStatut (ProfilID)
-create index idx02_T_AboDernierStatut on #T_AboDernierStatut (CatalogueAbosID)
-create index idx03_T_AboDernierStatut on #T_AboDernierStatut (SubscriptionCreated)
-
-update a 
-set SubscriptionStatusID=b.SubscriptionStatusID
-, FinAboDate=( case when a.FinAboDate<b.ServiceExpiry then a.FinAboDate else b.ServiceExpiry end )
-from #T_Abos_Agreg a inner join #T_AboDernierStatut b 
-on a.ProfilID=b.ProfilID
-and a.CatalogueAbosID=b.CatalogueAbosID
-and a.SouscriptionAboDate=b.SubscriptionCreated
-where a.SubscriptionStatusID<>b.SubscriptionStatusID
-
--- Stocker les lignes dans etl.Abos_Agreg_PVL 
--- en attendant que la procédure etl.InsertAbonnements_Agreg les déverse dans dbo.Abonnements
-
-delete a -- on supprime les lignes que l'on va remplacer
-from etl.Abos_Agreg_PVL a inner join #T_Abos_Agreg b on a.MasterAboID=b.MasterAboID
-
-insert etl.Abos_Agreg_PVL 
-(
- MasterAboID
-, ProfilID
-, MasterID
-, SourceID
-, Marque
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ContratID_Regroup
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, AboDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-)
-select  MasterAboID
-, ProfilID
-, MasterID
-, SourceID
-, Marque
-, CatalogueAbosID
-, SouscriptionAboDate
-, DebutAboDate
-, FinAboDate
-, MontantAbo
-, ExAboSouscrNb
-, Devise
-, Recurrent
-, ContratID_Regroup
-, ClientUserId
-, ServiceGroup
-, IsTrial
-, OrderID
-, ProductDescription
-, MethodePaiement
-, CodePromo
-, Provenance
-, CommercialId
-, SalonId
-, ModePmtHorsLigne
-, SubscriptionStatusID
-from #T_Abos_Agreg
-
-update brut.Contrats_Abos
-set ModifieTop=0
-where ModifieTop=1 -- Alimentations successives sans build ; normalement, cela doit être fait par la procédure FinTraitement
-
-update a
-set LigneStatut=99
-from import.PVL_Abonnements a
-where a.FichierTS=@FichierTS
-and a.LigneStatut=0
-and a.SubscriptionStatusID=N'2'
-
-update a
-set LigneStatut=99
-from import.PVL_Abonnements a inner join #T_Recup b on a.ImportID=b.ImportID
-where a.LigneStatut=0
-and a.SubscriptionStatusID=N'2'
-
-update a
-set LigneStatut=99
-from import.PVL_Achats a inner join #T_Abos_Agreg b on a.OrderID=b.OrderID
-where a.LigneStatut=0
-and a.ProductType=N'Service'
-and a.OrderStatus<>N'Refunded'
-
-if object_id(N'tempdb..#T_Recup') is not null
-	drop table #T_Recup
+BEGIN
+	SET NOCOUNT ON
 	
-if object_id(N'tempdb..#T_Abos_Agreg') is not null
-	drop table #T_Abos_Agreg
+	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
 	
-declare @FTS nvarchar(255)
-declare @S nvarchar(1000)
-
-declare c_fts cursor for select FichierTS from #T_FTS
-
-open c_fts
-
-fetch c_fts into @FTS
-
-while @@FETCH_STATUS=0
-begin
-
---set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
-
---IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
---	execute (@S) 
-
-fetch c_fts into @FTS
-end
-
-close c_fts
-deallocate c_fts
-
-
+	DECLARE @SourceID INT
+	DECLARE @SourceID_Contact INT
+	
+	SET @SourceID = 10 -- PVL
+	SET @SourceID_Contact = 1 -- Neolane, car on ne cree pas de contacts PVL specifiques : on transcode vers Neolane
+	
+	
+	-- Alimentation de dbo.Abonnements
+	
+	IF OBJECT_ID('tempdb..#T_Abos') IS NOT NULL
+	    DROP TABLE #T_Abos
+	
+	CREATE TABLE #T_Abos
+	(
+		ProfilID                 INT NULL
+	   ,SourceID                 INT NULL
+	   ,Marque                   INT NULL
+	   ,ClientUserID             NVARCHAR(18) NULL
+	   ,iRecipientID             NVARCHAR(18) NULL
+	   ,OriginalID               NVARCHAR(255) NULL -- Code produit d'origine
+	   ,CatalogueAbosID          INT NULL -- Reference de produit dans le catalogue
+	   ,NomAbo                   NVARCHAR(255) NULL -- Libelle du catalogue
+	   ,OrderDate                DATETIME NULL
+	   ,ServiceID                NVARCHAR(18) NULL
+	   ,SouscriptionAboDate      DATETIME NULL
+	   ,DebutAboDate             DATETIME NULL
+	   ,FinAboDate               DATETIME NULL
+	   ,ExAboSouscrNb            INT NOT NULL DEFAULT(0)
+	   ,RemiseAbo                DECIMAL(10 ,2) NULL
+	   ,MontantAbo               DECIMAL(10 ,2) NULL
+	   ,Devise                   NVARCHAR(16) NULL
+	   ,Recurrent                BIT NULL
+	   ,SubscriptionStatus       NVARCHAR(255) NULL
+	   ,SubscriptionStatusID     INT NULL
+	   ,ServiceGroup             NVARCHAR(255) NULL
+	   ,IsTrial                  BIT NULL
+	    -- les champs suivants seront alimentes a partir de la table Orders
+	   ,OrderID                  NVARCHAR(16) NULL
+	   ,ProductDescription       NVARCHAR(255) NULL
+	   ,MethodePaiement          NVARCHAR(24) NULL
+	   ,CodePromo                NVARCHAR(24) NULL
+	   ,Provenance               NVARCHAR(255) NULL
+	   ,CommercialId             NVARCHAR(255) NULL
+	   ,SalonId                  NVARCHAR(255) NULL
+	   ,ModePmtHorsLigne         NVARCHAR(255) NULL
+	   ,ImportID                 INT NULL
+	   ,Reprise                  BIT NOT NULL DEFAULT(0)
+	)
+	
+	SET DATEFORMAT dmy
+	
+	INSERT #T_Abos
+	  (
+	    ProfilID
+	   ,SourceID
+	   ,Marque
+	   ,ClientUserID
+	   ,OriginalID
+	   ,CatalogueAbosID
+	   ,NomAbo
+	   ,OrderDate
+	   ,ServiceID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,ExAboSouscrNb
+	   ,RemiseAbo
+	   ,MontantAbo
+	   ,Devise
+	   ,Recurrent
+	   ,SubscriptionStatus
+	   ,SubscriptionStatusID
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,ImportID
+	  )
+	SELECT NULL                    AS ProfilID
+	      ,@SourceID
+	      ,NULL                    AS Marque
+	      ,a.ClientUserID
+	      ,a.ServiceId             AS OriginalID
+	      ,NULL                    AS CatalogueAbosID
+	      ,NULL                    AS NomAbo
+	      ,CAST(a.SubscriptionLastUpdated AS DATETIME) AS OrderDate
+	      ,a.ServiceID
+	      ,CAST(a.SubscriptionCreated AS DATETIME) AS SouscriptionAboDate
+	      ,CAST(a.SubscriptionLastUpdated AS DATETIME) AS DebutAboDate
+	      ,a.ServiceExpiry         AS FinAboDate
+	      ,1                       AS ExAboSouscrNb
+	      ,0                       AS RemiseAbo
+	      ,a.ExplicitPrice         AS MontantAbo
+	      ,a.ExplicitCurrency      AS Devise
+	      ,NULL                    AS Recurrent
+	      ,a.SubscriptionStatus
+	      ,CAST(a.SubscriptionStatusID AS INT) AS SubscriptionStatusID
+	      ,a.ServiceGroup
+	      ,CASE 
+	            WHEN a.IsTrial = N'True' THEN 1
+	            ELSE 0
+	       END
+	      ,a.ImportID
+	FROM   import.PVL_Abonnements     a
+	WHERE  a.FichierTS = @FichierTS
+	       AND a.LigneStatut = 0
+	       AND a.SubscriptionStatusID = N'2' -- Active Subscription
+	
+	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR
+	-- mais dont le sIdCompte est arrive depuis dans CusCompteEFR
+	
+	IF OBJECT_ID(N'tempdb..#T_FTS') IS NOT NULL
+	    DROP TABLE #T_FTS
+	
+	CREATE TABLE #T_FTS
+	(
+		FichierTS NVARCHAR(255) NULL
+	)
+	
+	IF OBJECT_ID(N'tempdb..#T_Recup') IS NOT NULL
+	    DROP TABLE #T_Recup
+	
+	CREATE TABLE #T_Recup
+	(
+		RejetCode     BIGINT NOT NULL
+	   ,ImportID      INT NOT NULL
+	   ,FichierTS     NVARCHAR(255) NULL
+	)
+	
+	INSERT #T_Recup
+	  (
+	    RejetCode
+	   ,ImportID
+	   ,FichierTS
+	  )
+	SELECT a.RejetCode
+	      ,a.ImportID
+	      ,a.FichierTS
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN import.NEO_CusCompteEFR b
+	            ON  a.ClientUserId = b.sIdCompte
+	WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	       AND b.LigneStatut <> 1
+	
+	UPDATE a
+	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,14)
+	FROM   #T_Recup a
+	
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	UPDATE a
+	SET    LigneStatut = 0
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  b.RejetCode = 0
+	
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   rejet.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	INSERT #T_FTS
+	  (
+	    FichierTS
+	  )
+	SELECT DISTINCT FichierTS
+	FROM   #T_Recup
+	
+	DELETE a
+	FROM   #T_Recup a
+	WHERE  a.RejetCode <> 0
+	
+	DELETE a
+	FROM   rejet.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	
+	INSERT #T_Abos
+	  (
+	    ProfilID
+	   ,SourceID
+	   ,Marque
+	   ,ClientUserID
+	   ,OriginalID
+	   ,CatalogueAbosID
+	   ,NomAbo
+	   ,OrderDate
+	   ,ServiceID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,ExAboSouscrNb
+	   ,RemiseAbo
+	   ,MontantAbo
+	   ,Devise
+	   ,Recurrent
+	   ,SubscriptionStatus
+	   ,SubscriptionStatusID
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,ImportID
+	  )
+	SELECT NULL                AS ProfilID
+	      ,@SourceID
+	      ,NULL                AS Marque
+	      ,a.ClientUserID
+	      ,a.ServiceId         AS OriginalID
+	      ,NULL                AS CatalogueAbosID
+	      ,NULL                AS NomAbo
+	      ,CAST(a.SubscriptionLastUpdated AS DATETIME) AS OrderDate
+	      ,a.ServiceID
+	      ,CAST(a.SubscriptionCreated AS DATETIME) AS SouscriptionAboDate
+	      ,CAST(a.SubscriptionLastUpdated AS DATETIME) AS DebutAboDate
+	      ,a.ServiceExpiry     AS FinAboDate
+	      ,1                   AS ExAboSouscrNb
+	      ,0                   AS RemiseAbo
+	      ,a.ExplicitPrice     AS MontantAbo
+	      ,a.ExplicitCurrency  AS Devise
+	      ,NULL                AS Recurrent
+	      ,a.SubscriptionStatus
+	      ,CAST(a.SubscriptionStatusID AS INT) AS SubscriptionStatusID
+	      ,a.ServiceGroup
+	      ,CASE 
+	            WHEN a.IsTrial = N'True' THEN 1
+	            ELSE 0
+	       END
+	      ,a.ImportID
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.LigneStatut = 0
+	       AND a.SubscriptionStatusID = N'2' -- Active Subscription
+	
+	
+	UPDATE a
+	SET    OrderID = b.OrderID
+	FROM   #T_Abos a
+	       INNER JOIN import.PVL_Achats b
+	            ON  a.ServiceId = b.ServiceID
+	                AND a.ClientUserID = b.ClientUserId
+	                AND a.OrderDate BETWEEN DATEADD(minute ,-10 ,CAST(b.OrderDate AS DATETIME)) 
+	                    AND DATEADD(minute ,10 ,CAST(b.OrderDate AS DATETIME))
+	WHERE  b.LigneStatut <> 1
+	       AND b.ProductType = N'Service'
+	       AND b.OrderStatus <> N'Refunded'
+	
+	
+	-- On ne prend pas de lignes qui n'ont pas de correspondance dans Orders, i.e. qui n'ont pas d'OrderID
+	
+	DELETE a
+	FROM   #T_Abos a
+	WHERE  OrderID IS NULL
+	
+	UPDATE a
+	SET    ProductDescription = b.Description
+	      ,MontantAbo = CAST(b.GrossAmount AS FLOAT)
+	      ,MethodePaiement = b.PaymentMethod
+	      ,CodePromo = b.ActivationCode
+	      ,Provenance = b.Provenance
+	      ,CommercialId = b.IdentifiantDuCommercial
+	      ,SalonId = b.IdentifiantDuSalon
+	      ,ModePmtHorsLigne = b.DetailModePaiementHorsLigne
+	FROM   #T_Abos a
+	       INNER JOIN import.PVL_Achats b
+	            ON  a.OrderID = b.OrderID
+	
+	UPDATE a
+	SET    iRecipientId = r1.iRecipientId
+	FROM   #T_Abos a
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                           DESC
+	                          ,b.ImportID DESC
+	                       ) AS N1
+	                      ,b.sIdCompte
+	                      ,b.iRecipientId
+	                FROM   import.NEO_CusCompteEFR b
+	                WHERE  b.LigneStatut <> 1
+	            ) AS r1
+	            ON  a.ClientUserId = r1.sIdCompte
+	WHERE  r1.N1 = 1
+	
+	UPDATE a
+	SET    ProfilID = b.ProfilID
+	FROM   #T_Abos a
+	       INNER JOIN brut.Contacts b
+	            ON  a.iRecipientID = b.OriginalID
+	                AND b.SourceID = @SourceID_Contact
+	
+	DELETE b
+	FROM   #T_Abos a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.ProfilID IS NULL
+	
+	DELETE #T_Abos
+	WHERE  ProfilID IS NULL
+	
+	UPDATE a
+	SET    CatalogueAbosID = b.CatalogueAbosID
+	      ,NomAbo = b.OffreAbo
+	      ,Marque = b.Marque
+	      ,Recurrent = b.Recurrent
+	FROM   #T_Abos a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.OriginalID = b.OriginalID
+	                AND a.SourceID = b.SourceID
+	
+	DELETE b
+	FROM   #T_Abos a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.CatalogueAbosID IS NULL
+	
+	DELETE #T_Abos
+	WHERE  CatalogueAbosID IS NULL
+	
+	-- ici, les abonnements doivent se cumuler, plusieurs lignes du meme client et meme titre en une ligne.
+	-- donc, il faut une table comme #T_Abos_Agreg
+	-- En outre, il faut gerer les remboursements dans les Achats
+	
+	-- Donc, il faut de toute facon utiliser les deux tables : PVL_Abonnements et PVL_Achats
+	
+	-- et comment ? - en utilisant la table brut.Contrats_Abos
+	-- comme je l'utilise pour Neolane
+	
+	INSERT brut.Contrats_Abos
+	  (
+	    ProfilID
+	   ,SourceID
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT ProfilID
+	      ,SourceID
+	      ,CatalogueAbosID
+	      ,SouscriptionAboDate
+	      ,DebutAboDate
+	      ,FinAboDate
+	      ,MontantAbo
+	      ,ExAboSouscrNb
+	      ,Devise
+	      ,Recurrent
+	      ,ClientUserId
+	      ,ServiceGroup
+	      ,IsTrial
+	      ,OrderID
+	      ,ProductDescription
+	      ,MethodePaiement
+	      ,CodePromo
+	      ,Provenance
+	      ,CommercialId
+	      ,SalonId
+	      ,ModePmtHorsLigne
+	      ,SubscriptionStatusID
+	FROM   #T_Abos
+	
+	-- donc, dans la table brut.Contrats_Abos ajouter aussi les champs de SubscriptionStatus ? - non, pas besoin
+	-- le statut, on calcule de toute facon par rapport a la date de fin
+	-- par contre, ici, on pourrait gerer les remboursements 
+	
+	
+	IF OBJECT_ID('tempdb..#T_Brut_Abos') IS NOT NULL
+	    DROP TABLE #T_Brut_Abos
+	
+	CREATE TABLE #T_Brut_Abos
+	(
+		ContratID                INT NOT NULL
+	   ,MasterAboID              INT NULL -- = AbonnementID de abo.Abonnements
+	   ,ProfilID                 INT NOT NULL
+	   ,SourceID                 INT NULL
+	   ,CatalogueAbosID          INT NULL
+	   ,SouscriptionAboDate      DATETIME NULL
+	   ,DebutAboDate             DATETIME NULL
+	   ,FinAboDate               DATETIME NULL
+	   ,MontantAbo               DECIMAL(10 ,2)
+	   ,ExAboSouscrNb            INT NULL
+	   ,Devise                   NVARCHAR(16) NULL
+	   ,Recurrent                BIT NULL
+	   ,ContratID_Regroup        INT NULL
+	   ,ClientUserId             NVARCHAR(18) NULL
+	   ,ServiceGroup             NVARCHAR(255) NULL
+	   ,IsTrial                  BIT NULL
+	   ,OrderID                  NVARCHAR(16) NULL
+	   ,ProductDescription       NVARCHAR(255) NULL
+	   ,MethodePaiement          NVARCHAR(24) NULL
+	   ,CodePromo                NVARCHAR(24) NULL
+	   ,Provenance               NVARCHAR(255) NULL
+	   ,CommercialId             NVARCHAR(255) NULL
+	   ,SalonId                  NVARCHAR(255) NULL
+	   ,ModePmtHorsLigne         NVARCHAR(255) NULL
+	   ,SubscriptionStatusID     INT NULL
+	)
+	
+	INSERT #T_Brut_Abos
+	  (
+	    ContratID
+	   ,MasterAboID
+	   ,ProfilID
+	   ,SourceID
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT a.ContratID
+	      ,a.MasterAboID
+	      ,a.ProfilID
+	      ,a.SourceID
+	      ,a.CatalogueAbosID
+	      ,a.SouscriptionAboDate
+	      ,a.DebutAboDate
+	      ,a.FinAboDate
+	      ,a.MontantAbo
+	      ,a.ExAboSouscrNb
+	      ,a.Devise
+	      ,a.Recurrent
+	      ,a.ClientUserId
+	      ,a.ServiceGroup
+	      ,a.IsTrial
+	      ,OrderID
+	      ,ProductDescription
+	      ,MethodePaiement
+	      ,CodePromo
+	      ,Provenance
+	      ,CommercialId
+	      ,SalonId
+	      ,ModePmtHorsLigne
+	      ,SubscriptionStatusID
+	FROM   brut.Contrats_Abos a
+	WHERE  a.ModifieTop = 1 -- Les lignes qui viennent d'etre inserees
+	       AND a.SourceID = @SourceID -- PVL
+	       AND a.Recurrent = 1
+	
+	CREATE INDEX ind_01_T_Brut_Abos ON #T_Brut_Abos(ProfilID ,CatalogueAbosID)
+	
+	INSERT #T_Brut_Abos
+	  (
+	    ContratID
+	   ,MasterAboID
+	   ,ProfilID
+	   ,SourceID
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT a.ContratID
+	      ,a.MasterAboID
+	      ,a.ProfilID
+	      ,a.SourceID
+	      ,a.CatalogueAbosID
+	      ,a.SouscriptionAboDate
+	      ,a.DebutAboDate
+	      ,a.FinAboDate
+	      ,a.MontantAbo
+	      ,a.ExAboSouscrNb
+	      ,a.Devise
+	      ,a.Recurrent
+	      ,a.ClientUserId
+	      ,a.ServiceGroup
+	      ,a.IsTrial
+	      ,a.OrderID
+	      ,a.ProductDescription
+	      ,a.MethodePaiement
+	      ,a.CodePromo
+	      ,a.Provenance
+	      ,a.CommercialId
+	      ,a.SalonId
+	      ,a.ModePmtHorsLigne
+	      ,a.SubscriptionStatusID
+	FROM   brut.Contrats_Abos a
+	       INNER JOIN #T_Brut_Abos b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	WHERE  a.ModifieTop = 0 -- Les lignes anciennes du meme profil, abonnements recurrents
+	       AND a.SourceID = @SourceID -- PVL
+	       AND a.Recurrent = 1
+	
+	CREATE TABLE #T_Abo_Fusion
+	(
+		N1                    INT NULL
+	   ,ContratID             INT NULL
+	   ,ProfilID              INT NULL
+	   ,CatalogueAbosID       INT NULL
+	   ,DebutAboDate          DATETIME NULL
+	   ,FinAboDate            DATETIME NULL
+	   ,DatePrevFin           DATETIME NULL
+	   ,Ddiff                 INT NULL
+	   ,ContratID_Regroup     INT NULL
+	)
+	
+	INSERT #T_Abo_Fusion
+	  (
+	    N1
+	   ,ContratID
+	   ,ProfilID
+	   ,CatalogueAbosID
+	   ,DebutAboDate
+	   ,FinAboDate
+	  )
+	SELECT RANK() OVER(
+	           PARTITION BY ProfilID
+	          ,CatalogueAbosID ORDER BY SouscriptionAboDate ASC
+	          ,DebutAboDate ASC
+	          ,NEWID()
+	       ) AS N1
+	      ,ContratID
+	      ,ProfilID
+	      ,CatalogueAbosID
+	      ,DebutAboDate
+	      ,FinAboDate
+	FROM   #T_Brut_Abos
+	
+	UPDATE a
+	SET    DatePrevFin = b.FinAboDate
+	FROM   #T_Abo_Fusion a
+	       LEFT OUTER JOIN #T_Abo_Fusion b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND b.N1 = a.N1 -1
+	
+	UPDATE #T_Abo_Fusion
+	SET    ContratID_Regroup = ContratID
+	WHERE  DatePrevFin IS NULL
+	       AND ContratID_Regroup IS NULL 
+	
+	UPDATE #T_Abo_Fusion
+	SET    Ddiff = DATEDIFF(DAY ,DatePrevFin ,DebutAboDate)
+	WHERE  DatePrevFin IS NOT NULL
+	
+	UPDATE #T_Abo_Fusion
+	SET    ContratID_Regroup = ContratID
+	WHERE  Ddiff > 181
+	       AND ContratID_Regroup IS NULL
+	
+	DECLARE @R AS INT
+	
+	SELECT @R = 1
+	
+	WHILE (@R > 0)
+	BEGIN
+	    UPDATE a
+	    SET    ContratID_Regroup = b.ContratID_Regroup
+	    FROM   #T_Abo_Fusion a
+	           INNER JOIN #T_Abo_Fusion b
+	                ON  a.ProfilID = b.ProfilID
+	                    AND a.CatalogueAbosID = b.CatalogueAbosID
+	                    AND b.N1 = a.N1 -1
+	    WHERE  a.ContratID_Regroup IS NULL
+	           AND a.DDiff <= 181 -- Intervalle ne doit pas etre superieur a 6 mois pour qu'on considere l'abonnement non interrompu
+	           AND b.ContratID_Regroup IS NOT NULL
+	    
+	    SELECT @R = @@ROWCOUNT
+	END
+	
+	UPDATE a
+	SET    ContratID_Regroup = b.ContratID_Regroup
+	FROM   #T_Brut_Abos a
+	       INNER JOIN #T_Abo_Fusion b
+	            ON  a.ContratID = b.ContratID
+	
+	IF OBJECT_ID('tempdb..#T_Abos_MinMax') IS NOT NULL
+	    DROP TABLE #T_Abos_MinMax
+	
+	CREATE TABLE #T_Abos_MinMax
+	(
+		ProfilID              INT NULL
+	   ,CatalogueAbosID       INT NULL
+	   ,ContratID_Regroup     INT NULL
+	   ,ContratID_Min         INT NULL
+	   ,DebutAboDate_Min      DATETIME NULL
+	   ,DebutAboDate_Max      DATETIME NULL
+	   ,MontantAbo_Sum        DECIMAL(10 ,2) NULL
+	)
+	
+	INSERT #T_Abos_MinMax
+	  (
+	    ProfilID
+	   ,CatalogueAbosID
+	   ,ContratID_Regroup
+	   ,ContratID_Min
+	   ,DebutAboDate_Min
+	   ,DebutAboDate_Max
+	   ,MontantAbo_Sum
+	  )
+	SELECT a.ProfilID
+	      ,a.CatalogueAbosID
+	      ,ContratID_Regroup
+	      ,MIN(a.ContratID)     AS ContratID_Min
+	      ,MIN(a.DebutAboDate)  AS DebutAboDate_Min
+	      ,MAX(a.DebutAboDate)  AS DebutAboDate_Max
+	      ,SUM(a.MontantAbo)    AS MontantAbo_Sum
+	FROM   #T_Brut_Abos            a
+	GROUP BY
+	       a.ProfilID
+	      ,a.CatalogueAbosID
+	      ,a.ContratID_Regroup
+	
+	CREATE INDEX ind_01_T_Abos_MinMax ON #T_Abos_MinMax(ProfilID ,CatalogueAbosID)
+	
+	
+	UPDATE a
+	SET    MasterAboID = b.ContratID_Min
+	FROM   #T_Brut_Abos a
+	       INNER JOIN #T_Abos_MinMax b
+	            ON  a.ContratID_Regroup = b.ContratID_Regroup
+	                AND a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	
+	IF OBJECT_ID('tempdb..#T_Abos_Agreg') IS NOT NULL
+	    DROP TABLE #T_Abos_Agreg
+	
+	CREATE TABLE #T_Abos_Agreg
+	(
+		MasterAboID              INT NULL -- = AbonnementID de abo.Abonnements
+	   ,ProfilID                 INT NOT NULL
+	   ,MasterID                 INT NULL
+	   ,SourceID                 INT NULL
+	   ,Marque                   INT NULL
+	   ,CatalogueAbosID          INT NULL
+	   ,SouscriptionAboDate      DATETIME NULL
+	   ,DebutAboDate             DATETIME NULL
+	   ,FinAboDate               DATETIME NULL
+	   ,MontantAbo               DECIMAL(10 ,2)
+	   ,ExAboSouscrNb            INT NULL
+	   ,Devise                   NVARCHAR(16) NULL
+	   ,Recurrent                BIT NULL
+	   ,ContratID_Regroup        INT NULL
+	   ,ClientUserId             NVARCHAR(18) NULL
+	   ,ServiceGroup             NVARCHAR(255) NULL
+	   ,IsTrial                  BIT NULL
+	   ,OrderID                  NVARCHAR(16) NULL
+	   ,ProductDescription       NVARCHAR(255) NULL
+	   ,MethodePaiement          NVARCHAR(24) NULL
+	   ,CodePromo                NVARCHAR(24) NULL
+	   ,Provenance               NVARCHAR(255) NULL
+	   ,CommercialId             NVARCHAR(255) NULL
+	   ,SalonId                  NVARCHAR(255) NULL
+	   ,ModePmtHorsLigne         NVARCHAR(255) NULL
+	   ,SubscriptionStatusID     INT NULL
+	)
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    MasterAboID
+	   ,ProfilID
+	   ,SourceID
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ContratID_Regroup
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT DISTINCT
+	       b.ContratID_Min AS MasterAboID
+	      ,a.ProfilID
+	      ,a.SourceID
+	      ,a.CatalogueAbosID
+	      ,a.SouscriptionAboDate
+	      ,a.DebutAboDate
+	      ,a.FinAboDate
+	      ,b.MontantAbo_Sum
+	      ,a.ExAboSouscrNb
+	      ,a.Devise
+	      ,a.Recurrent
+	      ,a.ContratID_Regroup
+	      ,a.ClientUserId
+	      ,a.ServiceGroup
+	      ,a.IsTrial
+	      ,a.OrderID
+	      ,a.ProductDescription
+	      ,a.MethodePaiement
+	      ,a.CodePromo
+	      ,a.Provenance
+	      ,a.CommercialId
+	      ,a.SalonId
+	      ,a.ModePmtHorsLigne
+	      ,a.SubscriptionStatusID
+	FROM   #T_Brut_Abos a
+	       INNER JOIN #T_Abos_MinMax b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.DebutAboDate = b.DebutAboDate_Max
+	                AND a.ContratID_Regroup = b.ContratID_Regroup
+	
+	-- Mettre a jour les informations avec la derniere valeur renseignee et non celle de la derniere ligne dans le temps
+	
+	-- le valeurs sont : SubscriptionStatusID
+	
+	-- ProductDescription
+	-- MethodePaiement
+	-- CodePromo
+	-- Provenance
+	-- CommercialId
+	-- SalonId
+	-- ModePmtHorsLigne
+	
+	UPDATE a
+	SET    ProductDescription = b.ProductDescription
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.ProductDescription
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.ProductDescription IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    MethodePaiement = b.MethodePaiement
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.MethodePaiement
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.MethodePaiement IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    CodePromo = b.CodePromo
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.CodePromo
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.CodePromo IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    Provenance = b.Provenance
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.Provenance
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.Provenance IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    CommercialId = b.CommercialId
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.CommercialId
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.CommercialId IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    SalonId = b.SalonId
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.SalonId
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.SalonId IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	UPDATE a
+	SET    ModePmtHorsLigne = b.ModePmtHorsLigne
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT a.ProfilID
+	                      ,a.CatalogueAbosID
+	                      ,a.ContratID_Regroup
+	                      ,a.ModePmtHorsLigne
+	                      ,RANK() OVER(
+	                           PARTITION BY a.ProfilID
+	                          ,a.CatalogueAbosID
+	                          ,a.ContratID_Regroup ORDER BY a.DebutAboDate DESC
+	                       )             AS N1
+	                FROM   #T_Brut_Abos     a
+	                WHERE  a.ModePmtHorsLigne IS NOT NULL
+	            ) AS b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.MasterAboID = b.ContratID_Regroup
+	WHERE  b.N1 = 1
+	
+	-- Eliminer les doublons eventuels dans #T_Abos_Agreg
+	-- Les doublons sont possibles si deux lignes ont la meme date de debut
+	
+	DELETE a
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY MasterAboID
+	                          ,DebutAboDate ORDER BY COALESCE(b.FinAboDate ,N'01-01-2078') 
+	                           DESC
+	                          ,NEWID()
+	                       ) AS N1
+	                      ,b.MasterAboID
+	                      ,b.DebutAboDate
+	                      ,COALESCE(b.FinAboDate ,N'01-01-2078') AS FinAboDate
+	                FROM   #T_Abos_Agreg b
+	            ) AS r1
+	            ON  a.MasterAboID = r1.MasterAboID
+	                AND CAST(a.DebutAboDate AS DATE) = CAST(r1.DebutAboDate AS DATE) -- on elimine ceux qui commencent le meme jour, et pas seulement a la seconde pres
+	                AND COALESCE(a.FinAboDate ,N'01-01-2078') = r1.FinAboDate
+	WHERE  N1 > 1
+	
+	-- Gerer 1 mois entre les dates de fin et date de debut des abonnements recurrents 
+	
+	UPDATE a
+	SET    DebutAboDate = b.DebutAboDate
+	      ,SouscriptionAboDate = b.SouscriptionAboDate
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN #T_Brut_Abos b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	       INNER JOIN #T_Abos_MinMax c
+	            ON  b.ProfilID = c.ProfilID
+	                AND b.CatalogueAbosID = c.CatalogueAbosID
+	                AND b.DebutAboDate = c.DebutAboDate_Min
+	                AND a.ContratID_Regroup = c.ContratID_Regroup
+	
+	
+	IF OBJECT_ID('tempdb..#T_Abos_MinMax') IS NOT NULL
+	    DROP TABLE #T_Abos_MinMax
+	
+	-- Propager MasterAboID dans brut :
+	
+	UPDATE a
+	SET    MasterAboID = b.MasterAboID
+	FROM   brut.Contrats_Abos a
+	       INNER JOIN #T_Brut_Abos b
+	            ON  a.ContratID = b.ContratID
+	WHERE  a.ModifieTop = 1
+	
+	IF OBJECT_ID('tempdb..#T_Brut_Abos') IS NOT NULL
+	    DROP TABLE #T_Brut_Abos
+	
+	UPDATE a
+	SET    MasterAboID = a.ContratID
+	FROM   brut.Contrats_Abos a
+	WHERE  a.MasterAboID IS NULL
+	       AND a.ModifieTop = 1
+	       AND SourceID = @SourceID 
+	
+	-- Inserer dans #T_Abos_Agreg les lignes des abonnements non-recurrents
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    MasterAboID
+	   ,ProfilID
+	   ,SourceID
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ContratID_Regroup
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,ProductDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT a.ContratID
+	      ,a.ProfilID
+	      ,a.SourceID
+	      ,a.CatalogueAbosID
+	      ,a.SouscriptionAboDate
+	      ,a.DebutAboDate
+	      ,a.FinAboDate
+	      ,a.MontantAbo
+	      ,a.ExAboSouscrNb
+	      ,a.Devise
+	      ,a.Recurrent
+	      ,a.ContratID         AS ContratID_Regroup
+	      ,a.ClientUserId
+	      ,a.ServiceGroup
+	      ,a.IsTrial
+	      ,a.OrderID
+	      ,a.ProductDescription
+	      ,a.MethodePaiement
+	      ,a.CodePromo
+	      ,a.Provenance
+	      ,a.CommercialId
+	      ,a.SalonId
+	      ,a.ModePmtHorsLigne
+	      ,a.SubscriptionStatusID
+	FROM   brut.Contrats_Abos     a
+	WHERE  ModifieTop = 1 -- Les lignes qui viennent d'etre inserees
+	       AND SourceID = @SourceID -- Neolane
+	       AND a.Recurrent = 0 -- Abonnements non-recurrents
+	
+	-- Renseigner la marque
+	
+	UPDATE a
+	SET    Marque = b.Marque
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.CatalogueAbosID = b.CatalogueAbosID
+	
+	CREATE INDEX ind_03_T_Abonnements_Agreg ON #T_Abos_Agreg(MasterAboID)
+	
+	UPDATE #T_Abos_Agreg
+	SET    MasterID = ProfilID
+	WHERE  MasterID IS NULL
+	
+	-- Renseigner = metrre a jour le SubscriptionStatusID avec le statut dernier en date qui peut ne pas etre "Active Subscription"
+	
+	IF OBJECT_ID(N'tempdb..#T_AboStatut') IS NOT NULL
+	    DROP TABLE #T_AboStatut
+	
+	CREATE TABLE #T_AboStatut
+	(
+		SubscriptionId              NVARCHAR(16) NULL
+	   ,ServiceID                   NVARCHAR(16) NULL
+	   ,SubscriptionCreated         DATETIME NULL
+	   ,SubscriptionLastUpdated     DATETIME NULL
+	   ,SubscriptionStatusID        INT NULL
+	   ,SubscriptionStatus          NVARCHAR(255) NULL
+	   ,AccountId                   NVARCHAR(16) NULL
+	   ,ClientUserId                NVARCHAR(16) NULL
+	   ,ServiceExpiry               DATETIME NULL
+	)
+	
+	INSERT #T_AboStatut
+	  (
+	    SubscriptionId
+	   ,ServiceID
+	   ,SubscriptionCreated
+	   ,SubscriptionLastUpdated
+	   ,SubscriptionStatusID
+	   ,SubscriptionStatus
+	   ,AccountId
+	   ,ClientUserId
+	   ,ServiceExpiry
+	  )
+	SELECT a.SubscriptionId
+	      ,a.ServiceID
+	      ,CAST(a.SubscriptionCreated AS DATETIME) AS SubscriptionCreated
+	      ,CAST(a.SubscriptionLastUpdated AS DATETIME) AS 
+	       SubscriptionLastUpdated
+	      ,CAST(a.SubscriptionStatusID AS INT) AS SubscriptionStatusID
+	      ,a.SubscriptionStatus
+	      ,a.AccountId
+	      ,a.ClientUserId
+	      ,CAST(a.ServiceExpiry AS DATETIME) AS ServiceExpiry
+	FROM   import.PVL_Abonnements a
+	WHERE  a.LigneStatut <> 1
+	
+	IF OBJECT_ID(N'tempdb..#T_AboDernierStatut') IS NOT NULL
+	    DROP TABLE #T_AboDernierStatut
+	
+	CREATE TABLE #T_AboDernierStatut
+	(
+		SubscriptionId              NVARCHAR(16) NULL
+	   ,ServiceID                   NVARCHAR(16) NULL
+	   ,SubscriptionCreated         DATETIME NULL
+	   ,SubscriptionLastUpdated     DATETIME NULL
+	   ,SubscriptionStatusID        INT NULL
+	   ,SubscriptionStatus          NVARCHAR(255) NULL
+	   ,AccountId                   NVARCHAR(16) NULL
+	   ,ClientUserId                NVARCHAR(16) NULL
+	   ,ServiceExpiry               DATETIME NULL
+	   ,iRecipientId                NVARCHAR(18) NULL
+	   ,ProfilID                    INT NULL
+	   ,CatalogueAbosID             INT NULL
+	)
+	
+	SET DATEFORMAT dmy
+	
+	INSERT #T_AboDernierStatut
+	  (
+	    SubscriptionId
+	   ,ServiceID
+	   ,SubscriptionCreated
+	   ,SubscriptionLastUpdated
+	   ,SubscriptionStatusID
+	   ,SubscriptionStatus
+	   ,AccountId
+	   ,ClientUserId
+	   ,ServiceExpiry
+	  )
+	SELECT a.SubscriptionId
+	      ,a.ServiceID
+	      ,a.SubscriptionCreated
+	      ,a.SubscriptionLastUpdated
+	      ,a.SubscriptionStatusID
+	      ,a.SubscriptionStatus
+	      ,a.AccountId
+	      ,a.ClientUserId
+	      ,a.ServiceExpiry
+	FROM   #T_AboStatut a
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY a.SubscriptionId ORDER BY a.SubscriptionLastUpdated 
+	                           DESC
+	                       )             AS N1
+	                      ,SubscriptionId
+	                      ,SubscriptionLastUpdated
+	                FROM   #T_AboStatut     a
+	            ) AS r1
+	            ON  a.SubscriptionId = r1.SubscriptionId
+	                AND a.SubscriptionLastUpdated = r1.SubscriptionLastUpdated
+	                AND r1.N1 = 1
+	
+	IF OBJECT_ID(N'tempdb..#T_AboStatut') IS NOT NULL
+	    DROP TABLE #T_AboStatut
+	
+	UPDATE a
+	SET    iRecipientId = r1.iRecipientId
+	FROM   #T_AboDernierStatut a
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
+	                           DESC
+	                          ,b.ImportID DESC
+	                       ) AS N1
+	                      ,b.sIdCompte
+	                      ,b.iRecipientId
+	                FROM   import.NEO_CusCompteEFR b
+	                WHERE  b.LigneStatut <> 1
+	            ) AS r1
+	            ON  a.ClientUserId = r1.sIdCompte
+	WHERE  r1.N1 = 1
+	
+	
+	UPDATE a
+	SET    ProfilID = b.ProfilID
+	FROM   #T_AboDernierStatut a
+	       INNER JOIN brut.Contacts b
+	            ON  a.iRecipientID = b.OriginalID
+	                AND b.SourceID = @SourceID_Contact
+	
+	
+	DELETE #T_AboDernierStatut
+	WHERE  ProfilID IS NULL
+	
+	UPDATE a
+	SET    CatalogueAbosID = b.CatalogueAbosID
+	FROM   #T_AboDernierStatut a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.ServiceID = b.OriginalID
+	                AND b.SourceID = @SourceID
+	
+	DELETE #T_AboDernierStatut
+	WHERE  CatalogueAbosID IS NULL
+	
+	CREATE INDEX idx01_T_AboDernierStatut ON #T_AboDernierStatut(ProfilID)
+	CREATE INDEX idx02_T_AboDernierStatut ON #T_AboDernierStatut(CatalogueAbosID)
+	CREATE INDEX idx03_T_AboDernierStatut ON #T_AboDernierStatut(SubscriptionCreated)
+	
+	UPDATE a
+	SET    SubscriptionStatusID = b.SubscriptionStatusID
+	      ,FinAboDate = (
+	           CASE 
+	                WHEN a.FinAboDate < b.ServiceExpiry THEN a.FinAboDate
+	                ELSE b.ServiceExpiry
+	           END
+	       )
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN #T_AboDernierStatut b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.SouscriptionAboDate = b.SubscriptionCreated
+	WHERE  a.SubscriptionStatusID <> b.SubscriptionStatusID
+	
+	-- Stocker les lignes dans etl.Abos_Agreg_PVL
+	-- en attendant que la procedure etl.InsertAbonnements_Agreg les deverse dans dbo.Abonnements
+	
+	DELETE a -- on supprime les lignes que l'on va remplacer
+	FROM   etl.Abos_Agreg_PVL a
+	       INNER JOIN #T_Abos_Agreg b
+	            ON  a.MasterAboID = b.MasterAboID
+	
+	INSERT etl.Abos_Agreg_PVL
+	  (
+	    MasterAboID
+	   ,ProfilID
+	   ,MasterID
+	   ,SourceID
+	   ,Marque
+	   ,CatalogueAbosID
+	   ,SouscriptionAboDate
+	   ,DebutAboDate
+	   ,FinAboDate
+	   ,MontantAbo
+	   ,ExAboSouscrNb
+	   ,Devise
+	   ,Recurrent
+	   ,ContratID_Regroup
+	   ,ClientUserId
+	   ,ServiceGroup
+	   ,IsTrial
+	   ,OrderID
+	   ,AboDescription
+	   ,MethodePaiement
+	   ,CodePromo
+	   ,Provenance
+	   ,CommercialId
+	   ,SalonId
+	   ,ModePmtHorsLigne
+	   ,SubscriptionStatusID
+	  )
+	SELECT MasterAboID
+	      ,ProfilID
+	      ,MasterID
+	      ,SourceID
+	      ,Marque
+	      ,CatalogueAbosID
+	      ,SouscriptionAboDate
+	      ,DebutAboDate
+	      ,FinAboDate
+	      ,MontantAbo
+	      ,ExAboSouscrNb
+	      ,Devise
+	      ,Recurrent
+	      ,ContratID_Regroup
+	      ,ClientUserId
+	      ,ServiceGroup
+	      ,IsTrial
+	      ,OrderID
+	      ,ProductDescription
+	      ,MethodePaiement
+	      ,CodePromo
+	      ,Provenance
+	      ,CommercialId
+	      ,SalonId
+	      ,ModePmtHorsLigne
+	      ,SubscriptionStatusID
+	FROM   #T_Abos_Agreg
+	
+	UPDATE brut.Contrats_Abos
+	SET    ModifieTop = 0
+	WHERE  ModifieTop = 1 -- Alimentations successives sans build ; normalement, cela doit etre fait par la procedure FinTraitement
+	
+	UPDATE a
+	SET    LigneStatut = 99
+	FROM   import.PVL_Abonnements a
+	WHERE  a.FichierTS = @FichierTS
+	       AND a.LigneStatut = 0
+	       AND a.SubscriptionStatusID = N'2'
+	
+	UPDATE a
+	SET    LigneStatut = 99
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup b
+	            ON  a.ImportID = b.ImportID
+	WHERE  a.LigneStatut = 0
+	       AND a.SubscriptionStatusID = N'2'
+	
+	UPDATE a
+	SET    LigneStatut = 99
+	FROM   import.PVL_Achats a
+	       INNER JOIN #T_Abos_Agreg b
+	            ON  a.OrderID = b.OrderID
+	WHERE  a.LigneStatut = 0
+	       AND a.ProductType = N'Service'
+	       AND a.OrderStatus <> N'Refunded'
+	
+	IF OBJECT_ID(N'tempdb..#T_Recup') IS NOT NULL
+	    DROP TABLE #T_Recup
+	
+	IF OBJECT_ID(N'tempdb..#T_Abos_Agreg') IS NOT NULL
+	    DROP TABLE #T_Abos_Agreg
+	
+	DECLARE @FTS NVARCHAR(255)
+	DECLARE @S NVARCHAR(1000)
+	
+	DECLARE c_fts CURSOR  
+	FOR
+	    SELECT FichierTS
+	    FROM   #T_FTS
+	
+	OPEN c_fts
+	
+	FETCH c_fts INTO @FTS
+	
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+	    --set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''+@FTS+N''' ; '
+	    
+	    --IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
+	    --	execute (@S) 
+	    
+	    FETCH c_fts INTO @FTS
+	END
+	
+	CLOSE c_fts
+	DEALLOCATE c_fts
+	
+	
 	--/********** AUTOCALCULATE REJECTSTATS **********/
 	--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Abonnements'))
 	--	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Abonnements', @FichierTS
-
-
-end
+END
