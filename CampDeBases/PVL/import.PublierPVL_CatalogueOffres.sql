@@ -1,10 +1,10 @@
-ï»¿USE [AmauryVUC]
+USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_CatalogueOffres]    Script Date: 22.04.2015 14:52:27 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 ALTER PROC [import].[PublierPVL_CatalogueOffres] @FichierTS NVARCHAR(255)
 AS
 
@@ -14,6 +14,7 @@ AS
 -- Description:	Alimentation de la table ref.CatalogueProduits et ref.CatalogueAbonnements
 -- a partir des fichiers CatalogueOffres de VEL : PVL_CatalogueOffres
 -- Modification date: 22/04/2015
+-- Modified by :	Andrei BRAGAR
 -- Modifications : union EQ, FF, LP
 -- =============================================
 
@@ -27,16 +28,19 @@ BEGIN
 	
 	-- On suppose que la table PVL_CatalogueOffres est alimentee en annule/remplace
 	DECLARE @FilePrefix NVARCHAR(5) = NULL
+	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
+		SET @FilePrefix = N'FF'
 	    SET @MarqueId = etl.GetMarqueID(N'France Football')
 	    SET @TitrePressValue = N'France Football'
 	END
 	
 	IF @FichierTS LIKE N'EQP%'
 	BEGIN
-	    SET @MarqueId = etl.GetMarqueID(N'L''Ã‰quipe')
-	    SET @TitrePressValue = N'L''Equipe Numerique'
+		SET @FilePrefix = N'EQP'
+	    SET @MarqueId = etl.GetMarqueID(N'L''Équipe')
+	    SET @TitrePressValue = N'L''Équipe Numérique'
 	END
 	
 	IF @FichierTS LIKE N'LP%'
@@ -81,7 +85,7 @@ BEGIN
 	      ,a.NomOffre          AS NomProduit
 	      ,a.TypeProduit       AS CategorieProduit
 	      ,CASE 
-	            WHEN @FilePrefix <> N'PL' THEN @MarqueId --EQ, FF
+	            WHEN @FilePrefix <> N'LP' THEN @MarqueId --EQ, FF
 	            ELSE CASE --LP
 	                      WHEN (
 	                               a.NomOffre LIKE N'%AEF%'
@@ -138,8 +142,6 @@ BEGIN
 	
 	IF OBJECT_ID(N'#T_CatProduits') IS NOT NULL
 	    DROP TABLE #T_CatProduits
-	
-	-- est-ce qu'on va gerer des suppressions des produits ?
 	
 	-- 2) Alimentation de ref.CatalogueAbonnements
 	
@@ -202,7 +204,7 @@ BEGIN
 	            ELSE NULL
 	       END AS TitreID
 	      ,CASE 
-	            WHEN a.TypeProduit LIKE N'Abonnement [Ã ,a] tacite reconduction' THEN 
+	            WHEN a.TypeProduit LIKE N'Abonnement [à,a] tacite reconduction' THEN 
 	                 1
 	            ELSE 0
 	       END AS Recurrent
@@ -229,7 +231,7 @@ BEGIN
 	    FROM   #T_CatAbos a
 	           CROSS JOIN ref.Misc b
 	    WHERE  b.TypeRef = N'SUPPORTABO'
-	           AND b.Valeur = N'Numerique'
+	           AND b.Valeur = N'Numérique'
 	END
 	
 	UPDATE a
@@ -298,6 +300,6 @@ BEGIN
 	       AND a.LigneStatut = 0
 	           
 	           /********** AUTOCALCULATE REJECTSTATS **********/
-	           --IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_CatalogueOffres'))
-	           --	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_CatalogueOffres', @FichierTS
+	           IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_CatalogueOffres'))
+	           	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_CatalogueOffres', @FichierTS
 END
