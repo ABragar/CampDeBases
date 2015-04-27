@@ -1,0 +1,5 @@
+﻿[C,B,T]:	C-Clients, B-beneficiary(beneficiary(получатель денег)), T-third-party payer(третье лицо-плательщик)
+[S,A,P]:	S-Subscribers,A:customer, P:Prospect
+[N,P]:		N-numeric, P-paper
+[G,P]:		G-unpaid(free), P-paid
+[I,N]:		I-inactive, N-new
