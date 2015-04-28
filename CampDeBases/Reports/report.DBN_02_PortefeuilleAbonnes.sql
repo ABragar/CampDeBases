@@ -7,12 +7,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
---alter proc [report].[DBN_02_PortefeuilleAbonnes] (@Appartenance int, @P nvarchar(30))
---as 
---begin 
-
-DECLARE @Appartenance INT = 1
-DECLARE @P NVARCHAR(30) 
+alter proc [report].[DBN_02_PortefeuilleAbonnes] (@Appartenance int, @P nvarchar(30))
+as 
+begin 
 
 set nocount on
 
@@ -44,43 +41,43 @@ select @IdOwner=IdOwner from report.RefPeriodeOwnerDB where Periode=@Period and 
 
 declare @DebutPeriod as datetime
 select @DebutPeriod=DebutPeriod from report.RefPeriodeOwnerDB where IdPeriode=@IdPeriod
---why 	right(N'00'
-
 set @PrecPeriod=N'Semaine_'+right(N'00'+cast(datepart(week,dateadd(week,-1,@DebutPeriod)) as nvarchar(2)),2)+N'_'+cast(datepart(year,dateadd(week,-1,@DebutPeriod)) as nvarchar(4))
 
---delete report.DashboardAboNumerique where Periode=@Period and IdGraph=@IdGraph and Appartenance=@Appartenance
+delete report.DashboardAboNumerique where Periode=@Period and IdGraph=@IdGraph and Appartenance=@Appartenance
 
--- Abonnées numériques payants actifs
+-- Abonnés numériques payants actifs
 
 ; with s as (
 select a.AbonnementID from dbo.Abonnements a
 where a.Appartenance in (1 & @Appartenance, 2 & @Appartenance)
-)--AbonnementID by @Appartenance
+)
+
 , y as (
 select cast(a.DebutPeriod as datetime) as DebutPeriod
 	, cast(dateadd(day,1,a.FinPeriod) as datetime) as FinPeriod
 	from report.RefPeriodeOwnerDB a where IdPeriode=@IdPeriod
-)--Periods by Pieriod, Appartenance, Template (Begin, end)
+)
+
 , u as (
 select COUNT(distinct a.MasterID) as NombreActifsPayants from dbo.Abonnements a inner join s on a.AbonnementID=s.AbonnementID
 inner join ref.Misc b on a.Typologie=b.CodeValN and b.TypeRef=N'TYPOLOGIE'
 inner join y on a.DebutAboDate<y.FinPeriod and a.FinAboDate>=y.DebutPeriod
 where b.Valeur like N'CSNP%'
-) --abonemens (qty)	by CSNP active
+)
 
 , x as (
 select COUNT(distinct a.MasterID) as NombreRenouveles from dbo.Abonnements a 
 inner join ref.Misc b on a.Typologie=b.CodeValN and b.TypeRef=N'TYPOLOGIE'
 inner join y on a.ReaboDate<y.FinPeriod and a.ReaboDate>=y.DebutPeriod
 and b.Valeur like N'CSNP%'
-) --qty abons update
+)
 
 , z as (
 select COUNT(*) as NombreNouveaux from dbo.Abonnements a 
 inner join ref.Misc b on a.Typologie=b.CodeValN and b.TypeRef=N'TYPOLOGIE'
 inner join y on a.DebutAboDate<y.FinPeriod and a.DebutAboDate>=y.DebutPeriod
 and b.Valeur like N'CSNP%'
-) --qty new
+)
 
 , a as (
 select 
@@ -91,7 +88,7 @@ union select 3 as NumOrder,  (select NombreNouveaux from z) as NombreActifs
 
 , b as (
 select N'Abonnés Actifs Payants' as Libelle, 1 as NumOrder
-union select N'dont Renbouvelés' as Libelle, 2 as NumOrder
+union select N'dont Renouvelés' as Libelle, 2 as NumOrder
 union select N'dont Nouveaux' as Libelle, 3 as NumOrder
 )
 
@@ -101,19 +98,19 @@ select a.NombreActifs
 	, b.Libelle from a inner join b on a.NumOrder=b.NumOrder
 )
 
---insert report.DashboardAboNumerique
---(
---Periode
---, IdPeriode
---, IdOwner
---, IdTemplate
---, SnapshotDate
---, IdGraph
---, Appartenance
---, Libelle
---, NumOrdre
---, ValeurFloat
---)
+insert report.DashboardAboNumerique
+(
+Periode
+, IdPeriode
+, IdOwner
+, IdTemplate
+, SnapshotDate
+, IdGraph
+, Editeur
+, Libelle
+, NumOrdre
+, ValeurFloat
+)
 select @Period as Periode
 , @IdPeriod as IdPeriode
 , @IdOwner as IdOwner
@@ -127,4 +124,4 @@ select @Period as Periode
 from t 
 order by t.NumOrder
 
---end
+end
