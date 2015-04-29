@@ -1,11 +1,12 @@
 USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 29.04.2015 17:39:55 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur_EQ]    Script Date: 29.04.2015 17:40:38 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER proc [import].[PublierPVL_Utilisateur] @FichierTS nvarchar(255)
+
+ALTER proc [import].[PublierPVL_Utilisateur_EQ] @FichierTS nvarchar(255)
 as
 
 -- =============================================
@@ -14,15 +15,11 @@ as
 -- Description:	Alimentation des tables : 
 --								
 --								brut.ConsentementsEmail 
--- à partir des fichiers AccountReport de VEL : PVL_Utilisateur
+-- à partir des fichiers AccountReport de VEL : PVL_Utilisateur de l'Equipe
 -- Modification date: 18/11/2014
 -- Modifications : n'alimenter que brut.ConsentementsEmail
 -- Modification date: 15/12/2014
 -- Modifications : Récupération des lignes invalides à cause de ClientUserID
--- Modified by :	Andrei BRAGAR
--- Modification date: 29/04/2015
--- Modifications : join with PublierPVL_Utilisateur_EQ
-
 -- =============================================
 
 begin
