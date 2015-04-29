@@ -1,5 +1,4 @@
 USE [AmauryVUC]
-
 GO
 
 SET ANSI_NULLS ON
@@ -7,12 +6,12 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-ALTER PROC [report.DBN_01_DureeVieAbos] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
+Create PROC [report].[DBN_01_DureeVieAbos] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
 AS
 -- =============================================
 -- Author:		Andrey Bragar
 -- Creation date: 28/04/2015
--- Description:	Calcul du Dashboard Abos Numériques 
+-- Description:	Calcul du Dashboard Abos Numeriques 
 --				N°1
 --				DUREE DE VIE ABONNEMENTS
 -- Modiification date :
@@ -20,10 +19,10 @@ AS
 -- Modification :
 -- =============================================
 
- 
 BEGIN
 	-- @Editeur : EQ, FF, LP
-	
+	SET NOCOUNT ON
+
 	DECLARE @IdTemplate AS UNIQUEIDENTIFIER = NULL
 	DECLARE @IdTemplate_Num_EQ AS UNIQUEIDENTIFIER =
 	        N'AE9B6FBA-06EF-4855-885A-BA3C2F955279'
@@ -90,8 +89,6 @@ BEGIN
 	
 	SET @IdGraph = 1
 	
-	SET NOCOUNT ON
-	
 	SELECT @IdPeriod = IdPeriode
 	FROM   report.RefPeriodeOwnerDB_Num
 	WHERE  Periode            = @Period
@@ -106,7 +103,7 @@ BEGIN
 	
 	DECLARE @DebutPeriod AS DATETIME
 	SELECT @DebutPeriod = DebutPeriod
-	FROM   report.RefPeriodeOwnerDB
+	FROM   report.RefPeriodeOwnerDB_Num
 	WHERE  IdPeriode = @IdPeriod
 	
 	SET @PrecPeriod = N'Semaine_' + RIGHT(
@@ -122,34 +119,57 @@ BEGIN
 	WHERE  Periode = @Period
 	       AND IdGraph = @IdGraph
 	       AND Editeur = @Editeur;
-	WITH abosByMarques AS (
-	         -- filter abos 
+	
+	WITH period AS (
+	         --find period	         
+	         SELECT CAST(a.DebutPeriod AS DATETIME) AS DebutPeriod
+	               ,CAST(DATEADD(DAY ,1 ,a.FinPeriod) AS DATETIME) AS FinPeriod
+	         FROM   report.RefPeriodeOwnerDB_Num a
+	         WHERE  IdPeriode = @IdPeriod
+	     )
+	     , abosByMarques AS (
+	         -- filter abos
 	         SELECT a.AbonnementID
-	               ,CASE a.StatutAbo
-	                     WHEN 2 THEN N'Echu'
-	                     WHEN 3 THEN N'En cours'
-	                END                AS statusAbonements
 	         FROM   dbo.Abonnements a
 	                INNER JOIN ref.V_Typologies t
 	                     ON  a.Typologie = t.CodeValN
 	         WHERE  a.Marque IN (SELECT VALUE
-	                             FROM   @MarqueList)
-	                AND t.Valeur LIKE     N'CSNP%' ---digital, paid
+	                             FROM   @MarqueList) -- by marques,
+	                AND t.Valeur LIKE N'CSNP%' ---digital, paid
 	     )
 	     
-	     ,abosWithPeriods AS --calculate duration of the abonements 
+	     ,aboStatuses AS ( --get abonents statuses
+	         SELECT a.AbonnementID --expired
+	               ,N'Echu'      AS statusAbonements
+	         FROM   Abonnements  AS a
+	                INNER JOIN abosByMarques am
+	                     ON  a.AbonnementID = am.AbonnementID
+	                INNER JOIN period
+	                     ON  COALESCE(a.FinAboDate ,GETDATE()) < period.DebutPeriod
+	         UNION ALL
+	         SELECT a.AbonnementID --actual
+	               ,N'En cours'   AS statusAbonements
+	         FROM   Abonnements   AS a
+	                INNER JOIN abosByMarques am
+	                     ON  a.AbonnementID = am.AbonnementID
+	                INNER JOIN period
+	                     ON  a.DebutAboDate < period.FinPeriod
+	                         AND COALESCE(a.FinAboDate ,GETDATE()) >= period.DebutPeriod
+	     )
+	     
+	     ,abosWithPeriods AS --get duration of the abonements 
 	     (
 	         SELECT a.AbonnementID
 	               ,aa.statusAbonements
 	               ,DATEDIFF(MONTH ,a.DebutAboDate ,COALESCE(a.FinAboDate ,GETDATE())) AS -- use current date, if finDate is null
 	                duration
 	         FROM   Abonnements AS a
-	                INNER JOIN abosByMarques aa
+	                INNER JOIN aboStatuses aa
 	                     ON  a.AbonnementID = aa.AbonnementID
 	         WHERE  statusAbonements IS NOT NULL
 	     )
 	     
-	     ,namePeriods AS (
+	     ,nameOrderPeriods AS (
 	         SELECT 1             AS NumOrder
 	               ,N'< 2 mois'   AS Label
 	         UNION ALL
@@ -192,7 +212,7 @@ BEGIN
 	               ,fp.NumOrder
 	               ,label
 	         FROM   formattedPeriods fp
-	                INNER JOIN namePeriods np
+	                INNER JOIN nameOrderPeriods np
 	                     ON  fp.NumOrder = np.NumOrder
 	         GROUP BY
 	                statusAbonements
@@ -200,21 +220,20 @@ BEGIN
 	               ,label
 	     )
 	
-	
-	insert report.DashboardAboNumerique
-	(
-	Periode
-	, IdPeriode
-	, IdOwner
-	, IdTemplate
-	, SnapshotDate
-	, IdGraph
-	, Editeur
-	, Libelle
-	, NumOrdre
-	, ValeurFloat
-	, ValeurChar
-	)
+	INSERT report.DashboardAboNumerique
+	  (
+	    Periode
+	   ,IdPeriode
+	   ,IdOwner
+	   ,IdTemplate
+	   ,SnapshotDate
+	   ,IdGraph
+	   ,Editeur
+	   ,Libelle
+	   ,NumOrdre
+	   ,ValeurFloat
+	   ,ValeurChar
+	  )
 	SELECT @Period             AS Periode
 	      ,@IdPeriod           AS IdPeriode
 	      ,@IdOwner            AS IdOwner
@@ -228,6 +247,7 @@ BEGIN
 	      ,r.statusAbonements  AS ValeurChar
 	FROM   result                 r
 	ORDER BY
-	       r.NumOrder, r.statusAbonements
+	       r.NumOrder
+	      ,r.statusAbonements
 END
        

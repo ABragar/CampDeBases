@@ -5,23 +5,23 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
---create proc [report.DBN_03_TacitesReconductions] (@Editeur NVARCHAR(8), @P nvarchar(30))
---as 
---begin 
+ALTER PROC [report].[DBN_03_TacitesReconductions] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
+AS
 -- =============================================
 -- Author:		Andrey Bragar
 -- Creation date: 28/04/2015
--- Description:	Calcul du Dashboard Abos Num?riques 
---				N°1
---				DUREE DE VIE ABONNEMENTS
+-- Description:	Calcul du Dashboard Abos Numeriques 
+--				N°3
+--				TACITES RECONDUCTIONS
 -- Modiification date :
 -- Modified by :
 -- Modification :
 -- =============================================
-DECLARE @Editeur NVARCHAR(8) = N'EQ'
-DECLARE @P NVARCHAR(30) = N'Semaine_24_2014'
 
+BEGIN
+	-- @Editeur : EQ, FF, LP
+	SET NOCOUNT ON
+	
 	DECLARE @IdTemplate AS UNIQUEIDENTIFIER = NULL
 	DECLARE @IdTemplate_Num_EQ AS UNIQUEIDENTIFIER =
 	        N'AE9B6FBA-06EF-4855-885A-BA3C2F955279'
@@ -86,9 +86,7 @@ DECLARE @P NVARCHAR(30) = N'Semaine_24_2014'
 	
 	SET @SnapshotDate = GETDATE()
 	
-	SET @IdGraph = 1
-	
-	SET NOCOUNT ON
+	SET @IdGraph = 3
 	
 	SELECT @IdPeriod = IdPeriode
 	FROM   report.RefPeriodeOwnerDB_Num
@@ -104,7 +102,7 @@ DECLARE @P NVARCHAR(30) = N'Semaine_24_2014'
 	
 	DECLARE @DebutPeriod AS DATETIME
 	SELECT @DebutPeriod = DebutPeriod
-	FROM   report.RefPeriodeOwnerDB
+	FROM   report.RefPeriodeOwnerDB_Num
 	WHERE  IdPeriode = @IdPeriod
 	
 	SET @PrecPeriod = N'Semaine_' + RIGHT(
@@ -120,112 +118,118 @@ DECLARE @P NVARCHAR(30) = N'Semaine_24_2014'
 	WHERE  Periode = @Period
 	       AND IdGraph = @IdGraph
 	       AND Editeur = @Editeur;
-	WITH abosByMarques AS (
-	         -- filter abos 
+	
+	WITH period AS (
+	         --find period	         
+	         SELECT CAST(a.DebutPeriod AS DATETIME) AS DebutPeriod
+	               ,CAST(DATEADD(DAY ,1 ,a.FinPeriod) AS DATETIME) AS FinPeriod
+	         FROM   report.RefPeriodeOwnerDB_Num a
+	         WHERE  IdPeriode = @IdPeriod
+	     )
+	     
+	     , abosByMarques AS (
+	         -- filter abos
 	         SELECT a.AbonnementID
-	               ,CASE a.StatutAbo
-	                     WHEN 2 THEN N'Echu'
-	                     WHEN 3 THEN N'En cours'
-	                END                AS statusAbonements
 	         FROM   dbo.Abonnements a
 	                INNER JOIN ref.V_Typologies t
 	                     ON  a.Typologie = t.CodeValN
 	         WHERE  a.Marque IN (SELECT VALUE
-	                             FROM   @MarqueList)
-	                AND t.Valeur LIKE     N'CSNP%' ---digital, paid
+	                             FROM   @MarqueList) -- by marques,
+	                AND t.Valeur LIKE N'CSNP%' ---digital, paid
 	     )
 	     
-	     ,abosWithPeriods AS --calculate duration of the abonements 
-	     (
-	         SELECT a.AbonnementID
-	               ,aa.statusAbonements
-	               ,DATEDIFF(MONTH ,a.DebutAboDate ,COALESCE(a.FinAboDate ,GETDATE())) AS -- use current date, if finDate is null
-	                duration
-	         FROM   Abonnements AS a
-	                INNER JOIN abosByMarques aa
-	                     ON  a.AbonnementID = aa.AbonnementID
-	         WHERE  statusAbonements IS NOT NULL
+	     ,reccurentAbos AS (
+	         SELECT a.*
+	         FROM   dbo.Abonnements a
+	                INNER JOIN abosByMarques am
+	                     ON  a.AbonnementID = am.AbonnementID
+	                INNER JOIN ref.CatalogueAbonnements AS ca
+	                     ON  a.CatalogueAbosID = ca.CatalogueAbosID
+	                         AND ca.Recurrent = 1
+	                INNER JOIN period
+	                     ON  (
+	                             a.FinAboDate BETWEEN period.DebutPeriod AND 
+	                             period.FinPeriod
+	                         )
+	         OR (
+	                a.ReaboDate BETWEEN period.DebutPeriod AND period.FinPeriod
+	            )
 	     )
-	     
-	     ,namePeriods AS (
-	         SELECT 1             AS NumOrder
-	               ,N'< 2 mois'   AS Label
-	         UNION ALL
-	         SELECT 2 AS durationID
-	               ,N'3 – 4 mois'
-	         UNION ALL
-	         SELECT 3
-	               ,N'5 – 8 mois'
-	         UNION ALL
-	         SELECT 4
-	               ,N'9 – 12 mois' 
-	         UNION ALL
-	         SELECT 5
-	               ,N'13 – 24 mois' 
-	         UNION ALL
-	         SELECT 6
-	               ,N'25 – 36 mois' 
-	         UNION ALL
-	         SELECT 7
-	               ,N'> 36 mois'
+	     ,tacitesReconductions AS (--Tacites reconductions 
+	         SELECT COUNT(AbonnementID) AS cnt
+	         FROM   reccurentAbos
 	     )
-	     ,formattedPeriods AS(
-	         SELECT AbonnementID
-	               ,statusAbonements
-	               ,CASE 
-	                     WHEN duration <= 2 THEN 1--N'< 2 mois'
-	                     WHEN duration BETWEEN 3
-	         AND 4 THEN 2 --N'3 – 4 mois'
-	             WHEN duration BETWEEN 5 AND 8 THEN 3--	N'5 – 8 mois'
-	             WHEN duration BETWEEN 9 AND 12 THEN 4--N'9 – 12 mois'
-	             WHEN duration BETWEEN 13 AND 24 THEN 5--N'13 – 24 mois'
-	             WHEN duration BETWEEN 25 AND 36 THEN 6-- N'25 – 36 mois'
-	             WHEN duration > 36 THEN 7--N'> 36 mois'
-	             END AS NumOrder
-	             FROM abosWithPeriods AS p
+	     ,x1 AS (--% ?checs pr?l?vement 
+	         SELECT COUNT(AbonnementID)  AS cnt
+	         FROM   reccurentAbos r
+	                INNER JOIN period    AS p
+	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
+	         WHERE  r.SubscriptionStatusID = 4 --Cancelled By AutoRenew Process
 	     )
-	     , result AS (
-	         SELECT COUNT(AbonnementID) AS cntValue
-	               ,statusAbonements
-	               ,fp.NumOrder
-	               ,label
-	         FROM   formattedPeriods fp
-	                INNER JOIN namePeriods np
-	                     ON  fp.NumOrder = np.NumOrder
-	         GROUP BY
-	                statusAbonements
-	               ,fp.NumOrder
-	               ,label
+	     ,x2 AS (--% Annulations
+	         SELECT COUNT(AbonnementID)     cnt
+	         FROM   reccurentAbos r
+	                INNER JOIN period    AS p
+	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
+	         WHERE  r.SubscriptionStatusID IN (5 ,3 ,1)	--Cancelled By User, Expired Subscription, Cancelled By Customer Support Agent
+	                AND r.ReaboDate IS NULL --
+	     ) 
+	     , percents AS (
+	         SELECT t.cnt                 AS val
+	               ,CASE t.cnt
+	                     WHEN 0 THEN 0
+	                     ELSE ISNULL(x1.cnt ,0) / t.cnt * 100
+	                END                   AS p1
+	               ,CASE t.cnt
+	                     WHEN 0 THEN 0
+	                     ELSE ISNULL(x2.cnt ,0) / t.cnt * 100
+	                END                   AS p2
+	         FROM   tacitesReconductions     t
+	               ,x1
+	               ,x2
+	     )
+	     ,result AS (
+	         SELECT N'Tacites reconductions' AS label
+	               ,val  AS ValeurFloat
+	               ,1    AS NumOrder
+	         FROM   percents
+	         UNION ALL
+	         SELECT N'% ?checs pr?l?vement' AS label
+	               ,p1  AS ValeurFloat
+	               ,2   AS NumOrder
+	         FROM   percents
+	         UNION ALL
+	         SELECT N'% Annulations'   AS label
+	               ,p2                 AS ValeurFloat
+	               ,3                  AS NumOrder
+	         FROM   percents
 	     )
 	
-	
-	--insert report.DashboardAboNumerique
-	--(
-	--Periode
-	--, IdPeriode
-	--, IdOwner
-	--, IdTemplate
-	--, SnapshotDate
-	--, IdGraph
-	--, Editeur
-	--, Libelle
-	--, NumOrdre
-	--, ValeurFloat
-	--, ValeurChar
-	--)
-	SELECT @Period             AS Periode
-	      ,@IdPeriod           AS IdPeriode
-	      ,@IdOwner            AS IdOwner
-	      ,@IdTemplate         AS IdTemplate
-	      ,@SnapshotDate       AS SnapshotDate
-	      ,@IdGraph            AS IdGraph
-	      ,@Editeur            AS Editeur
-	      ,r.label             AS Libelle
+	INSERT report.DashboardAboNumerique
+	  (
+	    Periode
+	   ,IdPeriode
+	   ,IdOwner
+	   ,IdTemplate
+	   ,SnapshotDate
+	   ,IdGraph
+	   ,Editeur
+	   ,Libelle
+	   ,NumOrdre
+	   ,ValeurFloat
+	  )
+	SELECT @Period        AS Periode
+	      ,@IdPeriod      AS IdPeriode
+	      ,@IdOwner       AS IdOwner
+	      ,@IdTemplate    AS IdTemplate
+	      ,@SnapshotDate  AS SnapshotDate
+	      ,@IdGraph       AS IdGraph
+	      ,@Editeur       AS Editeur
+	      ,r.label        AS Libelle
 	      ,r.NumOrder
-	      ,r.cntValue          AS ValeurFloat
-	      ,r.statusAbonements  AS ValeurChar
-	FROM   result                 r
+	      ,r.ValeurFloat  AS ValeurFloat
+	FROM   result            r
 	ORDER BY
-	       r.NumOrder, r.statusAbonements
---end
+	       r.NumOrder
+END
        
