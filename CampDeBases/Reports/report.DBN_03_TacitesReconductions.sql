@@ -148,11 +148,11 @@ BEGIN
 	                         AND ca.Recurrent = 1
 	                INNER JOIN period
 	                     ON  (
-	                             a.FinAboDate BETWEEN period.DebutPeriod AND 
-	                             period.FinPeriod
+	                             a.FinAboDate >=period.DebutPeriod AND 
+	                             a.FinAboDate < period.FinPeriod
 	                         )
 	         OR (
-	                a.ReaboDate BETWEEN period.DebutPeriod AND period.FinPeriod
+	                a.ReaboDate >= period.DebutPeriod AND a.ReaboDate< period.FinPeriod
 	            )
 	     )
 	     ,tacitesReconductions AS (--Tacites reconductions 
@@ -163,14 +163,14 @@ BEGIN
 	         SELECT COUNT(AbonnementID)  AS cnt
 	         FROM   reccurentAbos r
 	                INNER JOIN period    AS p
-	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
+	                     ON  r.AnnulationDate >= p.DebutPeriod AND r.AnnulationDate < p.FinPeriod
 	         WHERE  r.SubscriptionStatusID = 4 --Cancelled By AutoRenew Process
 	     )
 	     ,x2 AS (--% Annulations
 	         SELECT COUNT(AbonnementID)     cnt
 	         FROM   reccurentAbos r
 	                INNER JOIN period    AS p
-	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
+	                     ON  r.AnnulationDate >= p.DebutPeriod AND r.AnnulationDate < p.FinPeriod
 	         WHERE  r.SubscriptionStatusID IN (5 ,3 ,1)	--Cancelled By User, Expired Subscription, Cancelled By Customer Support Agent
 	                AND r.ReaboDate IS NULL --
 	     ) 
@@ -178,11 +178,11 @@ BEGIN
 	         SELECT t.cnt                 AS val
 	               ,CASE t.cnt
 	                     WHEN 0 THEN 0
-	                     ELSE ISNULL(x1.cnt ,0) / t.cnt * 100
+	                     ELSE CAST(ISNULL(x1.cnt ,0) AS FLOAT) / t.cnt * 100
 	                END                   AS p1
 	               ,CASE t.cnt
 	                     WHEN 0 THEN 0
-	                     ELSE ISNULL(x2.cnt ,0) / t.cnt * 100
+	                     ELSE CAST(ISNULL(x2.cnt ,0)AS FLOAT) / t.cnt * 100
 	                END                   AS p2
 	         FROM   tacitesReconductions     t
 	               ,x1
