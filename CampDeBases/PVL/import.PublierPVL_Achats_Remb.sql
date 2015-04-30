@@ -5,7 +5,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROC [import].[PublierPVL_Achats_Remb] @FichierTS NVARCHAR(255)
+CREATE PROC [import].[PublierPVL_Achats_Remb] @FichierTS NVARCHAR(255)
 AS
 
 -- =============================================
@@ -16,6 +16,7 @@ AS
 -- a partir des fichiers DailyOrderReport de VEL : PVL_Achats 
 -- ou OrderStatus=Refunded
 -- Modification date: 22/04/2015
+-- Modified by :	Andrei BRAGAR
 -- Modifications : union EQ, LP, FF to 1 script
 -- =============================================
 
@@ -111,8 +112,9 @@ BEGIN
 	       AND a.OrderStatus = @OrderStatus
 	       AND a.Description LIKE @Description
 	
-	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR
-	-- mais dont le sIdCompte est arrive depuis dans CusCompteEFR
+	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR (EQ) ou CusCompteFF (FF)
+	-- ou e-mail non trouvé dans LPSSO ou brut.Emails (LP)
+	-- mais dont la situation a été régularisée depuis
 	
 	-- La table #T_FTS servira au recalcul des statistiques 
 	
@@ -298,10 +300,10 @@ BEGIN
 	
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
-	    --set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''+@FTS+N''' ; '
+	    set @S=N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Achats'', N'''+@FTS+N''' ; '
 	    
-	    --IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-	    --	execute (@S) 
+	    IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
+	    	execute (@S) 
 	    
 	    FETCH c_fts INTO @FTS
 	END
@@ -309,6 +311,6 @@ BEGIN
 	CLOSE c_fts
 	DEALLOCATE c_fts
 	
-	--IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
-	--	EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Achats', @FichierTS
+	IF (EXISTS(SELECT NULL FROM sys.tables t INNER JOIN sys.[schemas] s ON s.SCHEMA_ID = t.SCHEMA_ID WHERE s.name='import' AND t.Name = 'PVL_Achats'))
+		EXECUTE [QTSDQF].[dbo].[RejetsStats] '95940C81-C7A7-4BD9-A523-445A343A9605', 'PVL_Achats', @FichierTS
 END

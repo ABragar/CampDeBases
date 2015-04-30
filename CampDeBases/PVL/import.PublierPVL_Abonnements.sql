@@ -1,17 +1,12 @@
-/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.1.246
- * Time: 23.04.2015 13:28:41
- ************************************************************/
-
 USE [AmauryVUC]
 
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 22.04.2015 17:42:52 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 04/29/2015 15:20:55 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROC [import].[PublierPVL_Abonnements] @FichierTS NVARCHAR(255)
+ALTER PROC [import].[PublierPVL_Abonnements] @FichierTS NVARCHAR(255)
 AS
 
 -- =============================================
@@ -1326,12 +1321,16 @@ BEGIN
 	
 	UPDATE a
 	SET    SubscriptionStatusID = b.SubscriptionStatusID
-	      ,FinAboDate = (
+	      ,FinAboDate = CASE WHEN b.SubscriptionStatusID in (1,4,5) /* Cancelled */ 
+	      THEN b.SubscriptionLastUpdated
+	      ELSE
+	      (
 	           CASE 
 	                WHEN a.FinAboDate < b.ServiceExpiry THEN a.FinAboDate
 	                ELSE b.ServiceExpiry
 	           END
 	       )
+	       END
 	FROM   #T_Abos_Agreg a
 	       INNER JOIN #T_AboDernierStatut b
 	            ON  a.ProfilID = b.ProfilID

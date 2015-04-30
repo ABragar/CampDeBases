@@ -25,18 +25,6 @@
           <AssociatedConnUserName />
           <FullPath>addNewValues2MiscPayMode.sql</FullPath>
         </FileNode>
-        <FileNode Name="Create View1.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>Create View1.sql</FullPath>
-        </FileNode>
-        <FileNode Name="Create View2.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>Create View2.sql</FullPath>
-        </FileNode>
         <FileNode Name="deleteImportedDataByFilename.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
@@ -60,18 +48,6 @@
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>etl.GetMarqueID.sql</FullPath>
-        </FileNode>
-        <FileNode Name="etl.Marques.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>etl.Marques.sql</FullPath>
-        </FileNode>
-        <FileNode Name="etl.PayModes.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>etl.PayModes.sql</FullPath>
         </FileNode>
         <FileNode Name="etl.RemplirVEL_Accounts.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
@@ -97,9 +73,27 @@
           <AssociatedConnUserName />
           <FullPath>GetPhoneTypeFunction.sql</FullPath>
         </FileNode>
+        <FileNode Name="ref.V_Marques.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>ref.V_Marques.sql</FullPath>
+        </FileNode>
+        <FileNode Name="ref.V_PayModes.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>ref.V_PayModes.sql</FullPath>
+        </FileNode>
+        <FileNode Name="sp_executeSql_example.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>sp_executeSql_example.sql</FullPath>
+        </FileNode>
         <FileNode Name="TrimFunction.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>TrimFunction.sql</FullPath>
         </FileNode>
