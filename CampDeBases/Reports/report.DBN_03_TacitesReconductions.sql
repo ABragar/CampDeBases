@@ -11,7 +11,7 @@ AS
 -- Author:		Andrey Bragar
 -- Creation date: 28/04/2015
 -- Description:	Calcul du Dashboard Abos Numeriques 
---				N�3
+--				N°3
 --				TACITES RECONDUCTIONS
 -- Modiification date :
 -- Modified by :
@@ -194,7 +194,7 @@ BEGIN
 	               ,1    AS NumOrder
 	         FROM   percents
 	         UNION ALL
-	         SELECT N'% ?checs pr?l?vement' AS label
+	         SELECT N'% Échecs prélèvement' AS label
 	               ,p1  AS ValeurFloat
 	               ,2   AS NumOrder
 	         FROM   percents
