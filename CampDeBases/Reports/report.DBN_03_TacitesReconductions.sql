@@ -11,7 +11,7 @@ AS
 -- Author:		Andrey Bragar
 -- Creation date: 28/04/2015
 -- Description:	Calcul du Dashboard Abos Numeriques 
---				NÂ°3
+--				N°3
 --				TACITES RECONDUCTIONS
 -- Modiification date :
 -- Modified by :
@@ -159,7 +159,7 @@ BEGIN
 	         SELECT COUNT(AbonnementID) AS cnt
 	         FROM   reccurentAbos
 	     )
-	     ,x1 AS (--% ?checs pr?l?vement 
+	     ,x1 AS (--% Échecs prélèvement 
 	         SELECT COUNT(AbonnementID)  AS cnt
 	         FROM   reccurentAbos r
 	                INNER JOIN period    AS p
@@ -194,7 +194,7 @@ BEGIN
 	               ,1    AS NumOrder
 	         FROM   percents
 	         UNION ALL
-	         SELECT N'% Ã‰checs prÃ©lÃ¨vement' AS label
+	         SELECT N'% Échecs prélèvement' AS label
 	               ,p1  AS ValeurFloat
 	               ,2   AS NumOrder
 	         FROM   percents

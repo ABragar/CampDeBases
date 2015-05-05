@@ -6,7 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-Create PROC [report].[DBN_01_DureeVieAbos] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
+
+ALTER PROC [report].[DBN_01_DureeVieAbos] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
 AS
 -- =============================================
 -- Author:		Andrey Bragar
@@ -15,8 +16,8 @@ AS
 --				N°1
 --				DUREE DE VIE ABONNEMENTS
 -- Modiification date :
--- Modified by :
--- Modification :
+-- Modified by : 
+-- Modification : 
 -- =============================================
 
 BEGIN
@@ -191,7 +192,19 @@ BEGIN
 	         SELECT 7
 	               ,N'> 36 mois'
 	     )
-	     ,formattedPeriods AS(
+	     
+	     , stts AS 
+	     (
+	     SELECT N'En cours' AS StatutAbo, 1 AS N_Statut
+	     UNION SELECT N'Echu' AS StatutAbo, 2 AS N_Statut
+	     )
+	     
+	     , ds AS 
+	     (
+	     SELECT a.NumOrder, a.Label, b.StatutAbo, b.N_Statut FROM nameOrderPeriods AS a CROSS JOIN stts AS b
+	     )
+	     
+	     , formattedPeriods AS(
 	         SELECT AbonnementID
 	               ,statusAbonements
 	               ,CASE 
@@ -206,20 +219,27 @@ BEGIN
 	             END AS NumOrder
 	             FROM abosWithPeriods AS p
 	     )
-	     , result AS (
-	         SELECT COUNT(AbonnementID) AS cntValue
-	               ,statusAbonements
-	               ,fp.NumOrder
-	               ,label
-	         FROM   formattedPeriods fp
-	                INNER JOIN nameOrderPeriods np
-	                     ON  fp.NumOrder = np.NumOrder
-	         GROUP BY
-	                statusAbonements
-	               ,fp.NumOrder
-	               ,label
+	     
+	     , r1 as (
+	     SELECT COUNT(fp.AbonnementID) AS cntValue
+	     , fp.statusAbonements
+	     , fp.NumOrder
+	     FROM formattedPeriods fp
+	     GROUP BY fp.statusAbonements
+	     , fp.NumOrder
 	     )
-	
+	     
+	     , result AS (
+	         SELECT COALESCE(r1.cntValue,0) as cntValue
+	               ,ds.StatutAbo
+	               ,ds.NumOrder
+	               ,ds.Label
+	               ,ds.N_Statut
+	         FROM  ds LEFT JOIN r1
+	                ON  ds.NumOrder = r1.NumOrder and r1.statusAbonements=ds.StatutAbo
+	     )
+	     
+
 	INSERT report.DashboardAboNumerique
 	  (
 	    Periode
@@ -244,10 +264,10 @@ BEGIN
 	      ,r.label             AS Libelle
 	      ,r.NumOrder
 	      ,r.cntValue          AS ValeurFloat
-	      ,r.statusAbonements  AS ValeurChar
+	      ,r.StatutAbo  AS ValeurChar
 	FROM   result                 r
 	ORDER BY
 	       r.NumOrder
-	      ,r.statusAbonements
+	      ,r.N_Statut
 END
        

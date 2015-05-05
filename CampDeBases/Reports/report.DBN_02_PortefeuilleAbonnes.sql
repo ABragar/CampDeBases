@@ -1,5 +1,4 @@
 USE [AmauryVUC]
-
 GO
 /****** Object:  StoredProcedure [report].[DB_7_NouvAbos]    Script Date: 04/20/2015 16:28:13 ******/
 SET ANSI_NULLS ON
@@ -7,7 +6,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-alter proc [report].[DBN_02_PortefeuilleAbonnes] (@Editeur nvarchar(8), @P nvarchar(30))
+
+alter proc [report].[DBN_02_PortefeuilleAbonnements] (@Editeur nvarchar(8), @P nvarchar(30))
 as 
 
 -- =============================================
@@ -15,7 +15,7 @@ as
 -- Creation date: 28/04/2015
 -- Description:	Calcul du Dashboard Abos Numériques 
 --				N°2
---				PORTEFEUILLE ABONNES
+--				PORTEFEUILLE ABONNEMENTS
 -- Modiification date :
 -- Modified by :
 -- Modification :
@@ -92,18 +92,18 @@ end
 , y as (
 select cast(a.DebutPeriod as datetime) as DebutPeriod
 	, cast(dateadd(day,1,a.FinPeriod) as datetime) as FinPeriod
-	from report.RefPeriodeOwnerDB a where IdPeriode=@IdPeriod
+	from report.RefPeriodeOwnerDB_Num a where IdPeriode=@IdPeriod
 )
 
 , u as (
-select COUNT(distinct a.MasterID) as NombreActifsPayants from dbo.Abonnements a inner join s on a.AbonnementID=s.AbonnementID
+select COUNT(a.AbonnementID) as NombreActifsPayants from dbo.Abonnements a inner join s on a.AbonnementID=s.AbonnementID
 inner join ref.Misc b on a.Typologie=b.CodeValN and b.TypeRef=N'TYPOLOGIE'
 inner join y on a.DebutAboDate<y.FinPeriod and a.FinAboDate>=y.DebutPeriod
 where b.Valeur like N'CSNP%'
 )
 
 , x as (
-select COUNT(distinct a.MasterID) as NombreRenouveles from dbo.Abonnements a 
+select COUNT(a.AbonnementID) as NombreRenouveles from dbo.Abonnements a 
 inner join ref.Misc b on a.Typologie=b.CodeValN and b.TypeRef=N'TYPOLOGIE'
 inner join y on a.ReaboDate<y.FinPeriod and a.ReaboDate>=y.DebutPeriod
 and b.Valeur like N'CSNP%'
@@ -130,9 +130,9 @@ union select N'dont Nouveaux' as Libelle, 3 as NumOrder
 )
 
 , t as (
-select a.NombreActifs
+select coalesce(a.NombreActifs,0) as NombreActifs
 	, a.NumOrder
-	, b.Libelle from a inner join b on a.NumOrder=b.NumOrder
+	, b.Libelle from b left join a on b.NumOrder=a.NumOrder
 )
 
 insert report.DashboardAboNumerique
