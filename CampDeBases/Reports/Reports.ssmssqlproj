@@ -19,11 +19,29 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
+        <FileNode Name="report.DBN_01_DureeVieAbos.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.DBN_01_DureeVieAbos.sql</FullPath>
+        </FileNode>
         <FileNode Name="report.DBN_02_PortefeuilleAbonnes.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>report.DBN_02_PortefeuilleAbonnes.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.DBN_03_TacitesReconductions.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.DBN_03_TacitesReconductions.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.DBN_04_EngagementAbonnesActifs.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.DBN_04_EngagementAbonnesActifs.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>
