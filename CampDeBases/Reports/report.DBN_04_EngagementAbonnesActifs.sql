@@ -5,8 +5,10 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROC [report].[DBN_04_EngagementAbonnesActifs] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
-AS
+
+
+--CREATE PROC [report].[DBN_04_EngagementAbonnesActifs] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
+--AS
 -- =============================================
 -- Author:		Andrey Bragar
 -- Creation date: 29/04/2015
@@ -17,8 +19,9 @@ AS
 -- Modified by :
 -- Modification :
 -- =============================================
-
-BEGIN
+DECLARE @Editeur NVARCHAR(8) = N'EQ'
+DECLARE @P NVARCHAR(30) = N'Semaine_40_2014'
+--BEGIN
 	-- @Editeur : EQ, FF, LP
 	SET NOCOUNT ON
 	
@@ -114,122 +117,108 @@ BEGIN
 	        DATEPART(YEAR ,DATEADD(week ,-1 ,@DebutPeriod)) AS NVARCHAR(4)
 	    )
 	
+	
+	DECLARE @Period4 NVARCHAR(30)
+	DECLARE @IdPeriod4 AS UNIQUEIDENTIFIER
+	
+	  select @Period4 = N'Semaine_' + RIGHT(
+	        N'00' + CAST(
+	            DATEPART(week ,DATEADD(week ,-3 ,@DebutPeriod)) AS NVARCHAR(2)
+	        )
+	       ,2
+	    ) + N'_' + CAST(
+	        DATEPART(YEAR ,DATEADD(week ,-3 ,@DebutPeriod)) AS NVARCHAR(4)
+	    )	
+	
+	SELECT @IdPeriod4 = IdPeriode
+	FROM   report.RefPeriodeOwnerDB_Num
+	WHERE  Periode            = @Period4
+	       AND Editeur        = @Editeur
+	       AND IdTemplate     = @IdTemplate
+	
 	DELETE report.DashboardAboNumerique
 	WHERE  Periode = @Period
 	       AND IdGraph = @IdGraph
 	       AND Editeur = @Editeur;
 	
-	WITH period AS (
-	         --find period	         
+	WITH period1week AS (
+	         --find period	1 week         
 	         SELECT CAST(a.DebutPeriod AS DATETIME) AS DebutPeriod
 	               ,CAST(DATEADD(DAY ,1 ,a.FinPeriod) AS DATETIME) AS FinPeriod
 	         FROM   report.RefPeriodeOwnerDB_Num a
 	         WHERE  IdPeriode = @IdPeriod
 	     )
-	     
+	     ,period4week AS (
+	         SELECT CAST(a.DebutPeriod AS DATETIME) AS DebutPeriod
+	                ,p1.FinPeriod
+	         FROM   report.RefPeriodeOwnerDB_Num a , period1week p1
+	         WHERE  IdPeriode = @IdPeriod4
+	     )
 	     , abosByMarques AS (
 	         -- filter abos
-	         SELECT a.AbonnementID
+	         SELECT a.MasterId
 	         FROM   dbo.Abonnements a
 	                INNER JOIN ref.V_Typologies t
 	                     ON  a.Typologie = t.CodeValN
 	         WHERE  a.Marque IN (SELECT VALUE
 	                             FROM   @MarqueList) -- by marques,
 	                AND t.Valeur LIKE N'CSNP%' ---digital, paid
+	         GROUP BY MasterId
 	     )
-	     
-	     ,reccurentAbos AS (
-	         SELECT a.*
-	         FROM   dbo.Abonnements a
-	                INNER JOIN abosByMarques am
-	                     ON  a.AbonnementID = am.AbonnementID
-	                INNER JOIN ref.CatalogueAbonnements AS ca
-	                     ON  a.CatalogueAbosID = ca.CatalogueAbosID
-	                         AND ca.Recurrent = 1
-	                INNER JOIN period
-	                     ON  (
-	                             a.FinAboDate BETWEEN period.DebutPeriod AND 
-	                             period.FinPeriod
-	                         )
-	         OR (
-	                a.ReaboDate BETWEEN period.DebutPeriod AND period.FinPeriod
-	            )
+
+	     , premiumByMarques AS (
+	     SELECT aw.MasterID
+		 FROM [dbo].[ActiviteWeb] aw
+			INNER JOIN abosByMarques am ON aw.MasterID=am.MasterId
+			LEFT JOIN ref.SitesWeb AS sw ON SitewebId = sw.WebSiteID
+	     WHERE sw.Marque IN (SELECT VALUE
+	                             FROM   @MarqueList)
+	                             AND DerniereConnexAbonnesDate IS NOT NULL
 	     )
-	     ,tacitesReconductions AS (--Tacites reconductions 
-	         SELECT COUNT(AbonnementID) AS cnt
-	         FROM   reccurentAbos
+
+	     , access1week AS (
+	     SELECT aw.MasterID
+		 FROM [dbo].[ActiviteWeb] aw
+			INNER JOIN premiumByMarques pm ON aw.MasterID=pm.MasterID
+			INNER JOIN period1week AS p ON (DerniereVisiteDate>= p.DebutPeriod AND DerniereVisiteDate <p.FinPeriod)
 	     )
-	     ,x1 AS (--% ?checs pr?l?vement 
-	         SELECT COUNT(AbonnementID)  AS cnt
-	         FROM   reccurentAbos r
-	                INNER JOIN period    AS p
-	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
-	         WHERE  r.SubscriptionStatusID = 4 --Cancelled By AutoRenew Process
+	     , access4week AS (
+	     SELECT aw.MasterID
+		 FROM [dbo].[ActiviteWeb] aw
+			INNER JOIN premiumByMarques pm ON aw.MasterID=pm.MasterID			LEFT JOIN ref.SitesWeb AS sw ON SitewebId = sw.WebSiteID
+			INNER JOIN period4week AS p ON (DerniereVisiteDate>= p.DebutPeriod AND DerniereVisiteDate <p.FinPeriod)
+	     )	     , counts AS 
+	     (
+			SELECT COUNT(x1.MasterID) AS Active,COUNT(x2.MasterID) AS week1,COUNT(x3.MasterID) AS week4
+			FROM premiumByMarques x1, access1week x2, access4week x3
+				
 	     )
-	     ,x2 AS (--% Annulations
-	         SELECT COUNT(AbonnementID)     cnt
-	         FROM   reccurentAbos r
-	                INNER JOIN period    AS p
-	                     ON  r.AnnulationDate BETWEEN p.DebutPeriod AND p.FinPeriod
-	         WHERE  r.SubscriptionStatusID IN (5 ,3 ,1)	--Cancelled By User, Expired Subscription, Cancelled By Customer Support Agent
-	                AND r.ReaboDate IS NULL --
-	     ) 
-	     , percents AS (
-	         SELECT t.cnt                 AS val
-	               ,CASE t.cnt
-	                     WHEN 0 THEN 0
-	                     ELSE ISNULL(x1.cnt ,0) / t.cnt * 100
-	                END                   AS p1
-	               ,CASE t.cnt
-	                     WHEN 0 THEN 0
-	                     ELSE ISNULL(x2.cnt ,0) / t.cnt * 100
-	                END                   AS p2
-	         FROM   tacitesReconductions     t
-	               ,x1
-	               ,x2
-	     )
-	     ,result AS (
-	         SELECT N'Tacites reconductions' AS label
-	               ,val  AS ValeurFloat
-	               ,1    AS NumOrder
-	         FROM   percents
-	         UNION ALL
-	         SELECT N'% ?checs pr?l?vement' AS label
-	               ,p1  AS ValeurFloat
-	               ,2   AS NumOrder
-	         FROM   percents
-	         UNION ALL
-	         SELECT N'% Annulations'   AS label
-	               ,p2                 AS ValeurFloat
-	               ,3                  AS NumOrder
-	         FROM   percents
-	     )
-	
-	INSERT report.DashboardAboNumerique
-	  (
-	    Periode
-	   ,IdPeriode
-	   ,IdOwner
-	   ,IdTemplate
-	   ,SnapshotDate
-	   ,IdGraph
-	   ,Editeur
-	   ,Libelle
-	   ,NumOrdre
-	   ,ValeurFloat
-	  )
-	SELECT @Period        AS Periode
-	      ,@IdPeriod      AS IdPeriode
-	      ,@IdOwner       AS IdOwner
-	      ,@IdTemplate    AS IdTemplate
-	      ,@SnapshotDate  AS SnapshotDate
-	      ,@IdGraph       AS IdGraph
-	      ,@Editeur       AS Editeur
-	      ,r.label        AS Libelle
-	      ,r.NumOrder
-	      ,r.ValeurFloat  AS ValeurFloat
-	FROM   result            r
-	ORDER BY
-	       r.NumOrder
-END
+	SELECT * from counts 
+	--INSERT report.DashboardAboNumerique
+	--  (
+	--    Periode
+	--   ,IdPeriode
+	--   ,IdOwner
+	--   ,IdTemplate
+	--   ,SnapshotDate
+	--   ,IdGraph
+	--   ,Editeur
+	--   ,Libelle
+	--   ,NumOrdre
+	--   ,ValeurFloat
+	--  )
+	--SELECT @Period        AS Periode
+	--      ,@IdPeriod      AS IdPeriode
+	--      ,@IdOwner       AS IdOwner
+	--      ,@IdTemplate    AS IdTemplate
+	--      ,@SnapshotDate  AS SnapshotDate
+	--      ,@IdGraph       AS IdGraph
+	--      ,@Editeur       AS Editeur
+	--      ,r.label        AS Libelle
+	--      ,r.NumOrder
+	--      ,r.ValeurFloat  AS ValeurFloat
+	--FROM   result            r
+	--ORDER BY
+	--       r.NumOrder
+--END
        
