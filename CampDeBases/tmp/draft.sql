@@ -77,3 +77,5 @@ Select * INTO #g FROM OPENROWSET('Microsoft.Jet.OLEDB.4.0',
 
 --D:\Projects\Camp de bases\SessionsPremium_15000_1.xlsx
 
+
+
