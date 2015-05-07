@@ -20,8 +20,8 @@ as
 -- Modification date: 15/12/2014
 -- Modifications : Récupération des lignes invalides à cause de ClientUserID
 -- Modified by :	Andrei BRAGAR
--- Modification date: 29/04/2015
--- Modifications : join with PublierPVL_Utilisateur_EQ
+-- Modification date: 07/05/2015
+-- Modifications : join with PublierPVL_Utilisateur_EQ,LP,FF
 
 -- =============================================
 
@@ -31,17 +31,40 @@ set nocount on
 
 declare @SourceID int
 
-set @SourceID=10 -- PVL
 
 declare @Marque int
 
-select @Marque=(case when @FichierTS like N'%EQ%' then 7 when @FichierTS like N'%LP%' then 6 end)
+	IF @FichierTS LIKE N'FF%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteFF'
+	    SET @SourceID = 10 -- PVL
+	    SET @SourceID_Contact = 1 -- Neolane
+	    SET @FilePrefix = N'FF%'
+	END
+	
+	IF @FichierTS LIKE N'EQP%'
+	BEGIN
+	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
+	    SET @SourceID = 10 -- PVL
+	    SET @SourceID_Contact = 1 -- Neolane
+	    SET @FilePrefix = N'EQP%'
+        SET @Marque=7 -- en attendant la mise en place des noms des fichiers, on met d'office marque l'Equipe 
+	END
+	
+	IF @FichierTS LIKE N'LP%'
+	BEGIN
+	    SET @SourceID = 10 -- PVL
+	    SET @FilePrefix = N'LP%'
+        SET @Marque=6 -- en attendant la mise en place des noms des fichiers, on met d'office marque Le Parisien
+	END
+	
+	IF @FilePrefix IS NULL
+	    RAISERROR('File prefix does not match any of the possible',16, 1);
 
-select @Marque=7 -- en attendant la mise en place des noms des fichiers, on met d'office marque l'Equipe 
 
 create table #T_Trouver_ProfilID
 (
-ProfileID int null
+ProfilID int null
 , EmailAddress nvarchar(255) null
 , ClientUserId nvarchar(16) null
 , iRecipientId nvarchar(16) null
@@ -99,7 +122,35 @@ RejetCode bigint not null
 , FichierTS nvarchar(255) null
 )
 
+IF @FilePrefix = N'LP%'
+begin
+insert #T_Recup
+(
+RejetCode
+, ImportID
+, FichierTS
+)
+select distinct a.RejetCode, a.ImportID, a.FichierTS from import.PVL_Utilisateur a
+inner join import.SSO_Cumul b on a.EmailAddress=b.email_courant
+where a.RejetCode & power(cast(2 as bigint),2)=power(cast(2 as bigint),2)
 
+insert #T_Recup
+(
+RejetCode
+, ImportID
+, FichierTS
+)
+select distinct a.RejetCode, a.ImportID, a.FichierTS from import.PVL_Utilisateur a
+inner join brut.Emails b on a.EmailAddress=b.Email
+where a.RejetCode & power(cast(2 as bigint),2)=power(cast(2 as bigint),2)
+
+update a
+set RejetCode=a.RejetCode-power(cast(2 as bigint),2)
+from #T_Recup a
+end
+else
+IF @FilePrefix = N'EQP%' 
+begin
 insert #T_Recup
 (
 RejetCode
@@ -114,6 +165,7 @@ and b.LigneStatut<>1
 update a
 set RejetCode=a.RejetCode-power(cast(2 as bigint),42)
 from #T_Recup a
+end
 
 update a 
 set RejetCode=b.RejetCode
@@ -163,7 +215,152 @@ from import.PVL_Utilisateur a
 inner join #T_Recup b on a.ImportID=b.ImportID
 where a.LigneStatut=0
 
-if @Marque=7
+IF @FilePrefix = N'LP%'--LP
+BEGIN
+-- Trouver le ProfilID
+
+-- On retrouve le ProfilID dans brut.Contacts en passant par import.SSO_Cumul
+-- ainsi on retrouve la plupart des ProfilID
+
+update a
+set ProfilID=c.ProfilID
+from #T_Trouver_ProfilID a inner join import.SSO_Cumul b on a.EmailAddress=b.email_courant
+inner join brut.Contacts c on b.email_origine=c.OriginalID and c.SourceID=2
+
+-- Pour le reste, on passe par brut.Emails de différentes sources
+if object_id(N'tempdb..#T_BrutSourceID') is not null
+	drop table #T_BrutSourceID
+
+create table #T_BrutSourceID
+(
+ProfilID int null
+, EmailAddress nvarchar(255) null
+, SourceID int null
+)
+
+-- SourceID = 2 : LP SSO
+
+insert #T_BrutSourceID
+(
+ProfilID
+, EmailAddress
+, SourceID
+)
+select c.ProfilID
+, a.EmailAddress
+, c.SourceID 
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join brut.Contacts c on b.ProfilID=c.ProfilID and c.SourceID=2
+where a.ProfilID is null
+
+update a
+set ProfilID=r1.ProfilID
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join (
+select rank() over (partition by c.EmailAddress order by c.ProfilID asc) as N1
+, c.ProfilID
+from #T_BrutSourceID c
+) as r1 on b.ProfilID=r1.ProfilID 
+where a.ProfilID is null
+and r1.N1=1
+
+
+-- SourceID = 4 : LP Prospects
+
+truncate table #T_BrutSourceID
+
+insert #T_BrutSourceID
+(
+ProfilID
+, EmailAddress
+, SourceID
+)
+select c.ProfilID
+, a.EmailAddress
+, c.SourceID 
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join brut.Contacts c on b.ProfilID=c.ProfilID and c.SourceID=4
+where a.ProfilID is null
+
+update a
+set ProfilID=r1.ProfilID
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join (
+select rank() over (partition by c.EmailAddress order by c.ProfilID asc) as N1
+, c.ProfilID
+from #T_BrutSourceID c
+) as r1 on b.ProfilID=r1.ProfilID 
+where a.ProfilID is null
+and r1.N1=1
+
+-- SourceID = 3 : SDVP (DCS)
+
+truncate table #T_BrutSourceID
+
+insert #T_BrutSourceID
+(
+ProfilID
+, EmailAddress
+, SourceID
+)
+select c.ProfilID
+, a.EmailAddress
+, c.SourceID 
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join brut.Contacts c on b.ProfilID=c.ProfilID and c.SourceID=3
+where a.ProfilID is null
+
+update a
+set ProfilID=r1.ProfilID
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join (
+select rank() over (partition by c.EmailAddress order by c.ProfilID asc) as N1
+, c.ProfilID
+from #T_BrutSourceID c
+) as r1 on b.ProfilID=r1.ProfilID 
+where a.ProfilID is null
+and r1.N1=1
+
+-- SourceID = 1 : Neolane
+-- (il ne doit pas y en avoir, en théorie)
+
+truncate table #T_BrutSourceID
+
+insert #T_BrutSourceID
+(
+ProfilID
+, EmailAddress
+, SourceID
+)
+select c.ProfilID
+, a.EmailAddress
+, c.SourceID 
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join brut.Contacts c on b.ProfilID=c.ProfilID and c.SourceID=1
+where a.ProfilID is null
+
+update a
+set ProfilID=r1.ProfilID
+from #T_Trouver_ProfilID a 
+inner join brut.Emails b on a.EmailAddress=b.Email
+inner join (
+select rank() over (partition by c.EmailAddress order by c.ProfilID asc) as N1
+, c.ProfilID
+from #T_BrutSourceID c
+) as r1 on b.ProfilID=r1.ProfilID 
+where a.ProfilID is null
+and r1.N1=1
+
+END
+
+IF @FilePrefix = N'EQP%'
 begin
 
 update a 
@@ -178,7 +375,7 @@ as r1 on a.ClientUserId=r1.sIdCompte
 where r1.N1=1
 
 update a 
-set ProfileID=b.ProfilID
+set ProfilID=b.ProfilID
 from #T_Trouver_ProfilID a inner join brut.Contacts b on a.iRecipientId=b.OriginalID and b.SourceID=1
 
 end
@@ -186,14 +383,14 @@ end
 delete b 
 from #T_Trouver_ProfilID a
 inner join #T_Recup b on a.ImportID=b.ImportID
-where a.ProfileID is null
+where a.ProfilID is null
 
-delete #T_Trouver_ProfilID where ProfileID is null
+delete #T_Trouver_ProfilID where ProfilID is null
 
 update b set IDclientVEL=a.ClientUserId 
 , StatutCompteVEL=( case a.AccountStatus when N'Activated' then 1 when N'Closed' then 2 end ) 
 -- rajouter les deux autres statuts ("inactif", "mauvais payeur") quand ils seront connus
-from #T_Trouver_ProfilID a inner join brut.Contacts b on a.ProfileID=b.ProfilID and b.SourceID=1
+from #T_Trouver_ProfilID a inner join brut.Contacts b on a.ProfilID=b.ProfilID
 
 -- LienAvecMarque : StatutCompteVEL int
 
@@ -226,14 +423,14 @@ ProfilID
 , ConsentementDate
 )
 select distinct
-a.ProfileID
-, a.ProfileID
+a.ProfilID
+, a.ProfilID
 , a.EmailAddress
 , @ContenuID as ContenuID
 , case when a.NoMarketingInformation=N'False' then 1 else -1 end as Valeur
 , coalesce(a.CreateDate,a.LastUpdated,getdate()) as ConsentementDate
 from #T_Trouver_ProfilID a
-where a.ProfileID is not null
+where a.ProfilID is not null
 and coalesce(a.EmailAddress,N'')<>N''
 
 insert brut.ConsentementsEmail
