@@ -31,6 +31,12 @@
           <AssociatedConnUserName />
           <FullPath>2.sql</FullPath>
         </FileNode>
+        <FileNode Name="deleteDoublesVelLEquipe.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>deleteDoublesVelLEquipe.sql</FullPath>
+        </FileNode>
         <FileNode Name="import.PublierPVL_Abonnements.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
@@ -73,11 +79,35 @@
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_CatalogueOffres_FF.sql</FullPath>
         </FileNode>
+        <FileNode Name="import.PublierPVL_Utilisateur.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>import.PublierPVL_Utilisateur.sql</FullPath>
+        </FileNode>
         <FileNode Name="import.PublierPVL_Utilisateur_FF.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Utilisateur_FF.sql</FullPath>
+        </FileNode>
+        <FileNode Name="ModifyHS_1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>ModifyHS_1.sql</FullPath>
+        </FileNode>
+        <FileNode Name="ModifyHS_2.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>ModifyHS_2.sql</FullPath>
+        </FileNode>
+        <FileNode Name="ModifyPremium.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>ModifyPremium.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>
