@@ -1291,6 +1291,23 @@ ContratID
 from #T_Abonnements_Brut
 order by ProfilID,CTRCODTIT,CTRNUMCTR
 
+--Abonents W1 with CTRCODOFF = NP1 and CTROPTOFF in (18 , 2) merge to one
+UPDATE a
+SET CTROPTOFF = lastCTRoptOFF
+FROM #T_Abo_Fusion_Coupure a
+	INNER JOIN (SELECT *, row_number() over (PARTITION BY MasterAboID
+	,ProfilID
+	,CTRCODSOC
+	,CTRCODTIT
+	,CTRCODOFF
+	, CTRCODPRV order by norder desc) i, CTRoptOFF lastCTRoptOFF
+		FROM #T_Abo_Fusion_Coupure) x ON a.MasterAboID = x.MasterAboID AND a.ProfilID = x.ProfilID AND a.CTRCODTIT = x.CTRCODTIT AND a.CTRCODPRV = x.CTRCODPRV
+WHERE
+x.i = 1
+and a.CTRCODTIT=N'W1'
+AND a.CTRCODOFF = N'NP1'
+AND a.CTROPTOFF IN (N'2',N'18')
+
 /*
 update a
 set MasterAboID=r1.ContratID from #T_Abo_Fusion_Coupure a inner join (
@@ -1366,7 +1383,7 @@ end
 -- Puisque j'ai déjà MasterAboID dans #T_Abo_Fusion_Coupure, je pourrais regrouper directement par MasterAboID
 
 update a
-set MasterAboID=b.MasterAboID
+set MasterAboID=b.MasterAboID,  CTROPTOFF = b.CTROPTOFF
 from #T_Abonnements_Brut a inner join #T_Abo_Fusion_Coupure b on a.ContratID=b.ContratID
 
 update a
