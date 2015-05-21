@@ -1,6 +1,6 @@
 USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierSDVP_Contrats]    Script Date: 13.05.2015 16:43:03 ******/
+/****** Object:  StoredProcedure [import].[PublierSDVP_Contrats]    Script Date: 05/19/2015 19:02:24 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -21,6 +21,9 @@ ALTER proc [import].[PublierSDVP_Contrats] @FichierTS nvarchar(255)
 -- CTRCODOFF
 -- CTROPTOFF
 -- CTRCODPRV
+-- Modification date: 13/05/2015
+-- Modified by : Andrei BRAGAR
+-- Modification : Low Start Offers W1 NP1 2 et 18
 -- =============================================
 as
 begin
@@ -1074,7 +1077,7 @@ and a.CTROPTOFF=b.CTROPTOFF
 and a.CTRNUMCTR_MAX=b.CTRNUMCTR
 
 update b
-set ProfilID=b.ProfilID
+set ProfilID=a.ProfilID
 from #T_TrouverProfil a 
 inner join #T_Abonnements_Brut b 
 on a.CTRCODSOC=b.CTRCODSOC
@@ -1276,7 +1279,7 @@ ContratID
 )
 select
 ContratID
-, MasterAboID
+, null as MasterAboID
 , ProfilID
 , CTRCODSOC
 , CTRCODTIT
@@ -1291,30 +1294,33 @@ ContratID
 from #T_Abonnements_Brut
 order by ProfilID,CTRCODTIT,CTRNUMCTR
 
---Abonents W1 with CTRCODOFF = NP1 and CTROPTOFF in (18 , 2) merge to one
-UPDATE a
-SET CTROPTOFF = lastCTRoptOFF
+-- Abonents W1 with CTRCODOFF = NP1 and CTROPTOFF in (18 , 2) merge to one
+
+UPDATE a 
+SET a.CTROPTOFF=r1.CTROPTOFF
+	, a.CTRCODPRV=r1.CTRCODPRV
 FROM #T_Abo_Fusion_Coupure a
-	INNER JOIN (SELECT *, row_number() over (PARTITION BY MasterAboID
-	,ProfilID
-	,CTRCODSOC
-	,CTRCODTIT
-	,CTRCODOFF
-	, CTRCODPRV order by norder desc) i, CTRoptOFF lastCTRoptOFF
-		FROM #T_Abo_Fusion_Coupure) x ON a.MasterAboID = x.MasterAboID AND a.ProfilID = x.ProfilID AND a.CTRCODTIT = x.CTRCODTIT AND a.CTRCODPRV = x.CTRCODPRV
-WHERE
-x.i = 1
-and a.CTRCODTIT=N'W1'
+INNER JOIN (SELECT a.ProfilID
+					, a.CTRCODSOC
+					, a.CTRCODTIT
+					, a.CTRNUMCTR
+					, a.CTRCODOFF
+					, a.CTROPTOFF
+					, a.CTRCODPRV
+					, RANK () OVER (PARTITION BY a.ProfilID
+										, a.CTRCODSOC
+										, a.CTRCODTIT
+										, a.CTRCODOFF 
+										ORDER BY a.CTRNUMCTR DESC) as N1
+		FROM #T_Abo_Fusion_Coupure a) AS r1 
+		ON a.ProfilID=r1.ProfilID
+		AND a.CTRCODSOC=r1.CTRCODSOC
+		AND a.CTRCODTIT=r1.CTRCODTIT
+		AND a.CTRCODOFF=r1.CTRCODOFF
+WHERE r1.N1=1
+AND a.CTRCODTIT=N'W1'
 AND a.CTRCODOFF = N'NP1'
 AND a.CTROPTOFF IN (N'2',N'18')
-
-/*
-update a
-set MasterAboID=r1.ContratID from #T_Abo_Fusion_Coupure a inner join (
-select min(ContratID) as ContratID,ProfilID,CTRCODTIT from #T_Abo_Fusion_Coupure group by ProfilID,CTRCODTIT
-) as r1 on a.ContratID=r1.ContratID
-where a.MasterAboID is null 
-*/
 
 -- on prend directement les lignes avec NOrder=1, qui correspond au min(CTRNUMCTR) et qui doit correspondre au min(ContratID) - normalement, mais pas toujours
 
@@ -1383,7 +1389,7 @@ end
 -- Puisque j'ai déjà MasterAboID dans #T_Abo_Fusion_Coupure, je pourrais regrouper directement par MasterAboID
 
 update a
-set MasterAboID=b.MasterAboID,  CTROPTOFF = b.CTROPTOFF
+set a.MasterAboID=b.MasterAboID,  a.CTROPTOFF = b.CTROPTOFF, a.CTRCODPRV=b.CTRCODPRV
 from #T_Abonnements_Brut a inner join #T_Abo_Fusion_Coupure b on a.ContratID=b.ContratID
 
 update a
