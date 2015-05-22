@@ -37,4 +37,8 @@ BEGIN
 END 
 CLOSE TableNamesCursor
 DEALLOCATE TableNamesCursor	
-	                  	
+
+-- delete from ImportDataStatistic
+SELECT * FROM ImportDataStatistic	order by TraitementDate Desc, FichierTS, TableName
+
+         	SELECT * FROM [import].[PROB_Ciblage]

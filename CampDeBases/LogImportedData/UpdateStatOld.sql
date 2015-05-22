@@ -1,0 +1,45 @@
+	--update statistics for deleted files
+	--UPDATE s
+	--SET    s.Ajouts = 0
+	--      ,s.Modifications = 0
+	--      ,s.Suppressions = 0
+	--      ,s.RejetAjouts = 0
+	--      ,s.RejetModifications = 0
+	--      ,s.RejetSuppressions = 0
+	--      ,s.TraitementDate = GETDATE()
+	--FROM   ImportDataStatistic s
+	--       LEFT JOIN @Data t
+	--            ON  t.TableName = s.TableName
+	--                AND t.FichierTS = s.FichierTS
+	--WHERE  s.TableName = @TableName
+	--       AND t.TableName IS NULL
+	
+	---- add new records
+	--INSERT ImportDataStatistic
+	--SELECT t.*
+	--FROM   @Data t
+	--       LEFT JOIN ImportDataStatistic s
+	--            ON  t.TableName = s.TableName
+	--                AND t.FichierTS = s.FichierTS
+	--WHERE  s.FichierTS IS NULL
+	
+	--DELETE t
+	--FROM   #tmp t
+	--       LEFT JOIN ImportDataStatistic s
+	--            ON  t.TableName = s.TableName
+	--                AND t.FichierTS = s.FichierTS
+	--WHERE  s.FichierTS IS NULL
+	
+	--update existing
+	--UPDATE s
+	--SET    s.Ajouts = t.Ajouts
+	--      ,s.Modifications = t.Modifications
+	--      ,s.Suppressions = t.Suppressions
+	--      ,s.RejetAjouts = t.RejetAjouts
+	--      ,s.RejetModifications = t.RejetModifications
+	--      ,s.RejetSuppressions = t.RejetSuppressions
+	--      ,s.TraitementDate = t.TraitementDate
+	--FROM   @Data t
+	--       INNER JOIN ImportDataStatistic s
+	--            ON  t.TableName = s.TableName
+	--                AND t.FichierTS = s.FichierTS

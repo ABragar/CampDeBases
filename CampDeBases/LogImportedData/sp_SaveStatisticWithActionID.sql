@@ -1,32 +1,16 @@
 /************************************************************
  * Code formatted by SoftTree SQL Assistant © v7.1.246
- * Time: 20.05.2015 17:59:14
+ * Time: 21.05.2015 12:38:50
  ************************************************************/
 
 --import.SDVP_Adresses
 USE AmauryVUC
 GO
 
-ALTER PROC sp_SaveStatisticWithActionID @TableName NVARCHAR(255) AS
-BEGIN
-	IF OBJECT_ID('tempdb..#tmp') IS NOT NULL
-	    DROP TABLE #tmp
-	
-	CREATE TABLE #tmp
-	(
-		TableName              NVARCHAR(100) --
-	   ,FichierTS              NVARCHAR(255) --File name
-	   ,Ajouts                 INT --add
-	   ,Modifications          INT --update
-	   ,Suppressions           INT --delete
-	   ,RejetAjouts            INT --add
-	   ,RejetModifications     INT --update
-	   ,RejetSuppressions      INT --delete
-	   ,TraitementDate         DATETIME NOT NULL DEFAULT GETDATE()
-	)
-	
-	DECLARE @SqlCommand NVARCHAR(MAX) =
-	        N'INSERT #tmp
+ALTER PROC [dbo].[sp_SaveStatisticWithActionID] @TableName NVARCHAR(255) AS
+BEGIN	DECLARE @SqlCommand NVARCHAR(MAX) =
+	        N'DECLARE @data ImportDataStatisticType;
+	        INSERT @data
 	            (
 	              TableName
 	             ,FichierTS
@@ -37,14 +21,14 @@ BEGIN
 	             ,RejetModifications
 	             ,RejetSuppressions
 	            )
-	          SELECT @TableName
+	          SELECT @TableName as TableName
 	                ,FichierTS
-	                ,A
-	                ,M
-	                ,D
-	                ,RA
-	                ,RM
-	                ,RD
+	                ,SUM(A)
+	                ,SUM(M)
+	                ,SUM(D)
+	                ,SUM(RA)
+	                ,SUM(RM)
+	                ,SUM(RD)
 	          FROM   (
 	                     SELECT SUM(A)     A
 	                           ,SUM(M)     M
@@ -58,7 +42,7 @@ BEGIN
 	                                      ,M = (CASE WHEN actionID = 2 THEN 1 ELSE 0 END)
 	                                      ,D = (CASE WHEN actionID = 3 THEN 1 ELSE 0 END)
 	                                      ,ActionID
-	                                      ,FichierTS
+	                                      , isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
 	                                FROM   ' + @TableName +
 	        '
 	                                WHERE  RejetCode = 0
@@ -79,14 +63,18 @@ BEGIN
 	                                      ,M = (CASE WHEN actionID = 2 THEN 1 ELSE 0 END)
 	                                      ,D = (CASE WHEN actionID = 3 THEN 1 ELSE 0 END)
 	                                      ,ActionID
-	                                      ,FichierTS
+	                                      , isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
 	                                FROM   ' + @TableName +
 	        '
 	                                WHERE  RejetCode <> 0
 	                            ) x
 	                     GROUP BY
 	                            FichierTS
-	                 )x'
+	                 )x GROUP BY FichierTS
+	                 
+	                 EXEC sp_MergeStatistic @data, @TableName
+	                 
+	                 '
 	
 	DECLARE @param NVARCHAR(255) =
 	        N'@TableName NVARCHAR(255)'
@@ -94,15 +82,7 @@ BEGIN
 	EXECUTE sp_executesql @SqlCommand
 	       ,@Param
 	       ,@TableName = @TableName
-	
-	
-	SELECT *
-	FROM   #tmp t
-	       LEFT JOIN ImportDataStatistic s
-	            ON  t.TableName = s.TableName
-	                AND t.FichierTS = s.FichierTS
-	                AND s.FichierTS IS NULL  
-	
+
 END
 
 
