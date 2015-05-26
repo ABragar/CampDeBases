@@ -37,6 +37,24 @@
           <AssociatedConnUserName />
           <FullPath>deleteDoublesVelLEquipe.sql</FullPath>
         </FileNode>
+        <FileNode Name="DeleteNeolene_1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>DeleteNeolene_1.sql</FullPath>
+        </FileNode>
+        <FileNode Name="DeleteNeolene_21.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>DeleteNeolene_21.sql</FullPath>
+        </FileNode>
+        <FileNode Name="DeleteNeolene_3.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>DeleteNeolene_3.sql</FullPath>
+        </FileNode>
         <FileNode Name="import.PublierPVL_Abonnements.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
