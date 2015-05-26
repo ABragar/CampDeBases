@@ -1,8 +1,23 @@
 USE AmauryVUC
 GO
 
-ALTER PROC sp_SaveStatisticNoActionID @TableName NVARCHAR(255) AS
+ALTER PROC sp_SaveStatisticSSO @TableName NVARCHAR(255) AS
 BEGIN
+	DECLARE @CumulTableName NVARCHAR(255)
+	DECLARE @RejetTableName NVARCHAR(255)
+	IF @TableName=N'import.LPPROSP_Prospects'
+		BEGIN
+			SET @CumulTableName = N'import.Prospects_Cumul'
+			SET @RejetTableName = N'rejet.LPPROSP_Prospects'
+		END
+	ELSE
+	IF @TableName=N'Import.LPSSO_SSO'
+		BEGIN
+			SET @CumulTableName = N'import.SSO_Cumul'
+			SET @RejetTableName = N'rejet.LPSSO_SSO'
+		END
+	ELSE RETURN;
+	
 	DECLARE @SqlCommand NVARCHAR(MAX) =
 	        N'DECLARE @data ImportDataStatisticType;
 	        INSERT @data
@@ -28,7 +43,7 @@ BEGIN
 						SELECT COUNT(*)  AS A
 						      ,0         AS RA
 						      ,isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
-						FROM  '+ @TableName+'
+						FROM  '+ @CumulTableName+'
 						WHERE  RejetCode = 0
 						GROUP BY
 						       FichierTS
@@ -38,7 +53,7 @@ BEGIN
 						SELECT 0
 						      ,COUNT(*)
 						      ,isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
-						FROM   '+ @TableName+'
+						FROM   '+ @RejetTableName+'
 						WHERE  RejetCode <> 0
 						GROUP BY
 						       FichierTS

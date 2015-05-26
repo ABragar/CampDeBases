@@ -1,5 +1,7 @@
 USE AmauryVUC
 
+--CREATE PROC sp_RefreshStatistic AS
+--BEGIN
 DECLARE TableNamesCursor CURSOR  
 FOR
     SELECT OBJECT_ID
@@ -40,5 +42,5 @@ DEALLOCATE TableNamesCursor
 
 -- delete from ImportDataStatistic
 SELECT * FROM ImportDataStatistic	order by TraitementDate Desc, FichierTS, TableName
+--END
 
-         	SELECT * FROM [import].[PROB_Ciblage]

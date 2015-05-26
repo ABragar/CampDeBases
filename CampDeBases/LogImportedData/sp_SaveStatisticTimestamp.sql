@@ -1,7 +1,7 @@
 USE AmauryVUC
 GO
 
-ALTER PROC sp_SaveStatisticNoActionID @TableName NVARCHAR(255) AS
+ALTER PROC sp_SaveStatisticTimestamp @TableName NVARCHAR(255) AS
 BEGIN
 	DECLARE @SqlCommand NVARCHAR(MAX) =
 	        N'DECLARE @data ImportDataStatisticType;
@@ -27,21 +27,10 @@ BEGIN
 	          FROM   (
 						SELECT COUNT(*)  AS A
 						      ,0         AS RA
-						      ,isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
-						FROM  '+ @TableName+'
-						WHERE  RejetCode = 0
-						GROUP BY
-						       FichierTS
-						
-						UNION ALL
-						
-						SELECT 0
-						      ,COUNT(*)
-						      ,isnull(FichierTS,N''Fichier non renseigne'') as FichierTS
-						FROM   '+ @TableName+'
-						WHERE  RejetCode <> 0
-						GROUP BY
-						       FichierTS
+						      ,isnull(Timestamp,N''Fichier non renseigne'') as FichierTS
+						FROM  ' + @TableName + 
+	        '
+						GROUP BY Timestamp
 	                 )x GROUP BY FichierTS
 	                 EXEC sp_MergeStatistic @data, @TableName
 	                 '
@@ -53,4 +42,3 @@ BEGIN
 	       ,@Param
 	       ,@TableName = @TableName
 END
-
