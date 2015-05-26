@@ -9,6 +9,8 @@ Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "HF_Fiext", "HF_Fiext\HF_Fie
 EndProject
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Reports", "Reports\Reports.ssmssqlproj", "{9A25258C-86DA-483A-A603-939DE1A564B2}"
 EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "LogImportedData", "LogImportedData\LogImportedData.ssmssqlproj", "{AD4F5D92-9A61-49DD-9A89-50C332E5E37D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
@@ -17,8 +19,9 @@ Global
 		{E94E96DB-9682-4F58-B2C7-6A20AD4A26F1}.Default|Default.ActiveCfg = Default
 		{DBD4A4B6-D837-4EB4-A20A-74C54E7F731E}.Default|Default.ActiveCfg = Default
 		{9579DD99-DF63-4AAD-8C1A-136842E5706C}.Default|Default.ActiveCfg = Default
-		{179969EC-6487-49F5-8FA5-37F134F1C473}.Default|Default.ActiveCfg = Default
 		{9A25258C-86DA-483A-A603-939DE1A564B2}.Default|Default.ActiveCfg = Default
+		{AD4F5D92-9A61-49DD-9A89-50C332E5E37D}.Default|Default.ActiveCfg = Default
+		{C0B18FA9-A05C-4F06-BFB8-6D0C585E4E31}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
