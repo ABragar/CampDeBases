@@ -25,6 +25,18 @@
           <AssociatedConnUserName />
           <FullPath>addNewValues2MiscPayMode.sql</FullPath>
         </FileNode>
+        <FileNode Name="atosDeleteDoubles.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>atosDeleteDoubles.sql</FullPath>
+        </FileNode>
+        <FileNode Name="bruforceAtostables.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>bruforceAtostables.sql</FullPath>
+        </FileNode>
         <FileNode Name="deleteImportedDataByFilename.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
