@@ -19,35 +19,11 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
-        <FileNode Name="CreateTableImportDataLog.sql">
+        <FileNode Name="HelperCreateShemaTableImportDataLog.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>CreateTableImportDataLog.sql</FullPath>
-        </FileNode>
-        <FileNode Name="sp_handle.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>sp_handle.sql</FullPath>
-        </FileNode>
-        <FileNode Name="sp_MergeStatistic.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>sp_MergeStatistic.sql</FullPath>
-        </FileNode>
-        <FileNode Name="sp_RefreshStatistic.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>sp_RefreshStatistic.sql</FullPath>
-        </FileNode>
-        <FileNode Name="sp_SaveStatisticNoActionID.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
-          <AssociatedConnUserName />
-          <FullPath>sp_SaveStatisticNoActionID.sql</FullPath>
+          <FullPath>HelperCreateShemaTableImportDataLog.sql</FullPath>
         </FileNode>
         <FileNode Name="sp_SaveStatisticNoFichierTS.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
@@ -55,23 +31,53 @@
           <AssociatedConnUserName />
           <FullPath>sp_SaveStatisticNoFichierTS.sql</FullPath>
         </FileNode>
-        <FileNode Name="sp_SaveStatisticSSO.sql">
+        <FileNode Name="startScript.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>sp_SaveStatisticSSO.sql</FullPath>
+          <FullPath>startScript.sql</FullPath>
         </FileNode>
-        <FileNode Name="sp_SaveStatisticTimestamp.sql">
+        <FileNode Name="stats.MergeStatistic.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>sp_SaveStatisticTimestamp.sql</FullPath>
+          <FullPath>stats.MergeStatistic.sql</FullPath>
         </FileNode>
-        <FileNode Name="sp_SaveStatisticWithActionID.sql">
+        <FileNode Name="stats.RefreshStatistic.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>sp_SaveStatisticWithActionID.sql</FullPath>
+          <FullPath>stats.RefreshStatistic.sql</FullPath>
+        </FileNode>
+        <FileNode Name="stats.SaveStatisticNoActionID.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>stats.SaveStatisticNoActionID.sql</FullPath>
+        </FileNode>
+        <FileNode Name="stats.SaveStatisticSSO.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>stats.SaveStatisticSSO.sql</FullPath>
+        </FileNode>
+        <FileNode Name="stats.SaveStatisticTimestamp.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>stats.SaveStatisticTimestamp.sql</FullPath>
+        </FileNode>
+        <FileNode Name="stats.SaveStatisticWithActionID.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>stats.SaveStatisticWithActionID.sql</FullPath>
+        </FileNode>
+        <FileNode Name="stats.selectProcessingMethod.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>stats.selectProcessingMethod.sql</FullPath>
         </FileNode>
         <FileNode Name="tableWithListColumns.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>

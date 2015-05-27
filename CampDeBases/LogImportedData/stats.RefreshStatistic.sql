@@ -1,7 +1,7 @@
 USE AmauryVUC
-
---CREATE PROC sp_RefreshStatistic AS
---BEGIN
+go
+Create PROC stats.RefreshStatistic AS
+BEGIN
 DECLARE TableNamesCursor CURSOR  
 FOR
     SELECT OBJECT_ID
@@ -32,7 +32,7 @@ FETCH NEXT FROM TableNamesCursor
 INTO @ObjID
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    EXEC sp_handle @ObjID
+    EXEC stats.selectProcessingMethod @ObjID
     
     FETCH NEXT FROM TableNamesCursor
     INTO @ObjID
@@ -40,7 +40,5 @@ END
 CLOSE TableNamesCursor
 DEALLOCATE TableNamesCursor	
 
--- delete from ImportDataStatistic
-SELECT * FROM ImportDataStatistic	order by TraitementDate Desc, FichierTS, TableName
---END
+END
 

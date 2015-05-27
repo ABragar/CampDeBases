@@ -1,10 +1,10 @@
 USE AmauryVUC
 GO
 
-ALTER PROC sp_SaveStatisticTimestamp @TableName NVARCHAR(255) AS
+CREATE PROC stats.SaveStatisticTimestamp @TableName NVARCHAR(255) AS
 BEGIN
 	DECLARE @SqlCommand NVARCHAR(MAX) =
-	        N'DECLARE @data ImportDataStatisticType;
+	        N'DECLARE @data stats.ImportDataStatisticType;
 	        INSERT @data
 	            (
 	              TableName
@@ -32,7 +32,7 @@ BEGIN
 	        '
 						GROUP BY Timestamp
 	                 )x GROUP BY FichierTS
-	                 EXEC sp_MergeStatistic @data, @TableName
+	                 EXEC stats.MergeStatistic @data, @TableName
 	                 '
 	
 	DECLARE @param NVARCHAR(255) =

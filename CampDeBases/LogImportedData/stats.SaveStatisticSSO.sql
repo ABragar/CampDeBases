@@ -1,7 +1,7 @@
 USE AmauryVUC
 GO
-
-ALTER PROC sp_SaveStatisticSSO @TableName NVARCHAR(255) AS
+ 
+CREATE PROC stats.SaveStatisticSSO @TableName NVARCHAR(255) AS
 BEGIN
 	DECLARE @CumulTableName NVARCHAR(255)
 	DECLARE @RejetTableName NVARCHAR(255)
@@ -19,7 +19,7 @@ BEGIN
 	ELSE RETURN;
 	
 	DECLARE @SqlCommand NVARCHAR(MAX) =
-	        N'DECLARE @data ImportDataStatisticType;
+	        N'DECLARE @data stats.ImportDataStatisticType;
 	        INSERT @data
 	            (
 	              TableName
@@ -58,7 +58,7 @@ BEGIN
 						GROUP BY
 						       FichierTS
 	                 )x GROUP BY FichierTS
-	                 EXEC sp_MergeStatistic @data, @TableName
+	                 EXEC stats.MergeStatistic @data, @TableName
 	                 '
 	
 	DECLARE @param NVARCHAR(255) =
