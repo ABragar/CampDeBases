@@ -1,15 +1,9 @@
-/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.1.246
- * Time: 21.05.2015 12:38:50
- ************************************************************/
-
---import.SDVP_Adresses
 USE AmauryVUC
 GO
 
-ALTER PROC [dbo].[sp_SaveStatisticWithActionID] @TableName NVARCHAR(255) AS
+CREATE PROC stats.SaveStatisticWithActionID @TableName NVARCHAR(255) AS
 BEGIN	DECLARE @SqlCommand NVARCHAR(MAX) =
-	        N'DECLARE @data ImportDataStatisticType;
+	        N'DECLARE @data stats.ImportDataStatisticType;
 	        INSERT @data
 	            (
 	              TableName
@@ -72,7 +66,7 @@ BEGIN	DECLARE @SqlCommand NVARCHAR(MAX) =
 	                            FichierTS
 	                 )x GROUP BY FichierTS
 	                 
-	                 EXEC sp_MergeStatistic @data, @TableName
+	                 EXEC stats.MergeStatistic @data, @TableName
 	                 
 	                 '
 	

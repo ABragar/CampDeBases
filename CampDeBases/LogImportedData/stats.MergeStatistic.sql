@@ -1,7 +1,7 @@
 USE AmauryVUC
 GO
 
-ALTER PROC sp_MergeStatistic(
+CREATE PROC stats.MergeStatistic(
                                 @Data ImportDataStatisticType READONLY
                                ,@TableName NVARCHAR(255)
                             ) AS

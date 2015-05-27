@@ -1,12 +1,8 @@
-/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.1.246
- * Time: 26.05.2015 14:29:54
- ************************************************************/
-
 USE AmauryVUC
 GO
 
-ALTER PROC sp_handle @ObjId INT
+
+CREATE PROC STATS.selectProcessingMethod @ObjId INT
 AS
 BEGIN
 	DECLARE @SchemaName        NVARCHAR(50)
@@ -22,11 +18,11 @@ BEGIN
 	    --SSO_Cumul
 	    RETURN
 	END
-
+	
 	IF @FullTableName IN (N'import.LPPROSP_Prospects' ,N'Import.LPSSO_SSO')
 	BEGIN
 	    --SSO 
-	    EXEC sp_SaveStatisticSSO @FullTableName
+	    EXEC STATS.SaveStatisticSSO @FullTableName
 	END
 	ELSE
 	IF EXISTS(
@@ -38,7 +34,7 @@ BEGIN
 	              AND Column_Name     = N'TIMESTAMP'
 	   )
 	BEGIN
-	    EXEC sp_SaveStatisticTimestamp @FullTableName
+	    EXEC STATS.SaveStatisticTimestamp @FullTableName
 	END
 	ELSE
 	BEGIN
@@ -60,16 +56,16 @@ BEGIN
 	                      AND Column_Name = N'ActionID'
 	           )
 	        BEGIN
-	            EXEC sp_SaveStatisticWithActionID @FullTableName
+	            EXEC STATS.SaveStatisticWithActionID @FullTableName
 	        END
 	        ELSE
 	            --without ActionID
 	        BEGIN
-	            EXEC sp_SaveStatisticNoActionID @FullTableName
+	            EXEC STATS.SaveStatisticNoActionID @FullTableName
 	        END
 	    END
 	    ELSE
-	    	PRINT @TableName + N' not processing!!!'
+	        PRINT @TableName + N' not processing!!!'
 	END
 END
 
