@@ -1,68 +1,84 @@
-USE AmauryVUC
+ALTER PROC export.atosDeleteDoubles @TableName NVARCHAR(255) AS
 
-DECLARE @TableName NVARCHAR(255) = N'ActionID_ATOS_CentresInteret'
-
-DECLARE @FullTableName NVARCHAR(255) = N'export.'+@TableName
-DECLARE @FildList NVARCHAR(255) = N''
-DECLARE @Condition NVARCHAR(255) = N''
-
-DECLARE TableColumnCursor CURSOR  
-FOR
-    SELECT Column_name
-    FROM   INFORMATION_SCHEMA.[COLUMNS] AS c
-    WHERE  c.TABLE_NAME = @TableName
-    
-DECLARE @FieldName NVARCHAR(255)
-
-OPEN TableColumnCursor
-
-FETCH NEXT FROM TableColumnCursor
-INTO @FieldName
-WHILE @@FETCH_STATUS = 0
 BEGIN
-    IF @FieldName <> N'ActionID'
-    BEGIN
-        IF @FildList <> N''
-            SET @FildList = @FildList + ',';
-        SET @FildList = @FildList + @FieldName
-        
-        IF @Condition <> N''
-            SET @Condition = @Condition + ' and ';
-        SET @Condition = @Condition + N'X1.' + @FieldName + N'=X2.' + @FieldName
-    END
-    
-    FETCH NEXT FROM TableColumnCursor
-    INTO @FieldName
-END 
-CLOSE TableColumnCursor
-DEALLOCATE TableColumnCursor
-   
-DECLARE @SqlCommand NVARCHAR(MAX)
+	DECLARE @FullTableName NVARCHAR(255) = N'export.' + @TableName
+	DECLARE @FildList NVARCHAR(255) = N''
+	DECLARE @Condition NVARCHAR(255) = N''
+	
+	DECLARE TableColumnCursor CURSOR  
+	FOR
+	    SELECT Column_name
+	    FROM   INFORMATION_SCHEMA.[COLUMNS] AS c
+	    WHERE  c.TABLE_NAME = @TableName
+	
+	DECLARE @FieldName NVARCHAR(255)
+	
+	OPEN TableColumnCursor
+	
+	FETCH NEXT FROM TableColumnCursor
+	INTO @FieldName
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+	    IF @FieldName <> N'ActionID'
+	    BEGIN
+	        IF @FildList <> N''
+	            SET @FildList = @FildList + ',';
+	        SET @FildList = @FildList + @FieldName
+	        
+	        IF @Condition <> N''
+	            SET @Condition = @Condition + ' and ';
+	        SET @Condition = @Condition + N'X1.' + @FieldName + N'=X2.' + @FieldName
+	    END
+	    
+	    FETCH NEXT FROM TableColumnCursor
+	    INTO @FieldName
+	END 
+	CLOSE TableColumnCursor
+	DEALLOCATE TableColumnCursor
+	
+	DECLARE @SqlCommand NVARCHAR(MAX)
+	
+	SET @SqlCommand = 
+	    N'
+SELECT DISTINCT * 
+INTO #distinct
+FROM '+@FullTableName+'
 
-SET @SqlCommand = N'
+TRUNCATE TABLE '+@FullTableName+'
+
+INSERT INTO '+@FullTableName+'
+SELECT * FROM #distinct AS t
+	    
 SELECT DISTINCT *
        INTO     #varians
 FROM   (
-           SELECT COUNT(*) OVER(PARTITION BY '+@FildList+') N
+           SELECT COUNT(*) OVER(PARTITION BY ' + @FildList + 
+	    ') N
                  ,*
-           FROM   '+@FullTableName+'
+           FROM   ' + @FullTableName + 
+	    '
        )        x
 WHERE  N <> 1
+ORDER BY ActionID
 
-SELECT '+@FildList+'
+SELECT ' + @FildList + 
+	    '
       ,Actions
        INTO #Groups
 FROM   (
-           SELECT '+@FildList+'
+           SELECT ' + @FildList + 
+	    '
                  ,(
                       SELECT ActionID + ''''
                       FROM   #varians X2
-                      WHERE  '+@Condition+' FOR XML PATH('''')
+                      WHERE  ' + @Condition + 
+	    ' FOR XML PATH('''')
                   ) AS Actions
            FROM   #varians X1
-           GROUP BY '+@FildList+'
+           GROUP BY ' + @FildList + '
        ) xxx
-GROUP BY '+@FildList+'
+GROUP BY ' + @FildList + 
+	    '
       ,Actions
 ORDER BY
        Actions
@@ -76,24 +92,29 @@ SET    actions = CASE
                  END
 FROM   #Groups G
 
-SELECT *
---DELETE X1
-FROM   '+@FullTableName+' X1
+--SELECT *
+DELETE X1
+FROM   ' + @FullTableName + 
+	    ' X1
        INNER JOIN #Groups X2
-            ON  '+@Condition+'
+            ON  ' + @Condition + 
+	    '
 WHERE  X2.Actions = 0
 
-SELECT *
---DELETE X1
-FROM   '+@FullTableName+' X1
+--SELECT *
+DELETE X1
+FROM   ' + @FullTableName + 
+	    ' X1
        INNER JOIN #Groups X2
-            ON  '+@Condition+'
+            ON  ' + @Condition + 
+	    '
 WHERE  X1.actionID <> X2.actions
 
 DROP TABLE #varians
 DROP TABLE #Groups
+DROP TABLE #distinct
 '
---select @SqlCommand
-
-EXECUTE sp_executesql @SqlCommand
-
+	--select @SqlCommand
+	
+	EXECUTE sp_executesql @SqlCommand
+END

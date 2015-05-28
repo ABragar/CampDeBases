@@ -14,7 +14,7 @@ FETCH NEXT FROM TableNamesCursor
 INTO @ObjName
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    select @ObjName
+    exec export.atosDeleteDoubles @ObjName
     
     FETCH NEXT FROM TableNamesCursor
     INTO @ObjName
