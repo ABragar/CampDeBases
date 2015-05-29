@@ -1,6 +1,6 @@
 USE AmauryVUC
 go
-Create PROC stats.RefreshStatistic AS
+ALTER PROC stats.RefreshStatistic AS
 BEGIN
 DECLARE TableNamesCursor CURSOR  
 FOR
@@ -38,7 +38,41 @@ BEGIN
     INTO @ObjID
 END 
 CLOSE TableNamesCursor
-DEALLOCATE TableNamesCursor	
+DEALLOCATE TableNamesCursor
+
+--update TimeStamp
+UPDATE i
+SET    i.TIMESTAMPDATE = COALESCE(
+           [CDBDataQuality].[dbo].[RexGroupAsDatetime](
+               i.FichierTS
+              ,N'(0[1-9]|1[0-9]|2[0-9]|3[01])(0[1-9]|1[012])[0-9]{4}'
+              ,'0'
+              ,'ddMMyyyy'
+              ,NULL
+           )
+          ,[CDBDataQuality].[dbo].[RexGroupAsDatetime](
+               i.FichierTS
+              ,N'[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])'
+              ,'0'
+              ,'yyyy-MM-dd'
+              ,NULL
+           )
+          ,[CDBDataQuality].[dbo].[RexGroupAsDatetime](
+               i.FichierTS
+              ,N'[0-9]{4}(0[1-9]|1[012])(0[1-9]|1[0-9]|2[0-9]|3[01])'
+              ,'0'
+              ,'yyyyMMdd'
+              ,NULL
+           )
+          ,[CDBDataQuality].[dbo].[RexGroupAsDatetime](
+               i.FichierTS
+              ,N'(0[1-9]|1[0-9]|2[0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}'
+              ,'0'
+              ,'dd-MM-yyyy'
+              ,NULL
+           )
+       )
+FROM   [STATS].[ImportDataStatistic] i	
 
 END
 
