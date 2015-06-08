@@ -18,7 +18,44 @@
       </Items>
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
-      <Items />
+      <Items>
+        <FileNode Name="CreateAdditionalsObj.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>CreateAdditionalsObj.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.RemplirMasterIDsMapping.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.RemplirMasterIDsMapping.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.RemplirStatsWebSessions.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.RemplirStatsWebSessions.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.RemplirStatsWebSessionsMonth.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.RemplirStatsWebSessionsMonth.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report.RemplirStatsWebSessionsWeek.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report.RemplirStatsWebSessionsWeek.sql</FullPath>
+        </FileNode>
+        <FileNode Name="report_1.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>report_1.sql</FullPath>
+        </FileNode>
+      </Items>
     </LogicalFolder>
     <LogicalFolder Name="Miscellaneous" Type="3" Sorted="true">
       <Items />
