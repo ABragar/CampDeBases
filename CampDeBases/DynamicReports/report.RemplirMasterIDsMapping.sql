@@ -31,7 +31,7 @@ BEGIN
 	      ,SiteId
 	      ,Marque
 	FROM   #clientIDs c
-	       INNER JOIN import.LPSSO_SSO I
+	       INNER JOIN import.SSO_Cumul I
 	            ON  ClientID = I.id_SSO
 	       INNER JOIN brut.Contacts bc
 	            ON  I.email_origine = bc.OriginalID
@@ -49,12 +49,23 @@ BEGIN
 	      ,SiteId
 	      ,Marque
 	FROM   #clientIDs c
-	       INNER JOIN import.NEO_CusCompteEFR I
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY sIdCompte ORDER BY ActionID 
+	                           DESC
+	                          ,ImportID DESC
+	                       ) AS N
+	                      ,sIdCompte
+	                      ,iRecipientId
+	                FROM   import.NEO_CusCompteEFR
+	                WHERE  LigneStatut <> 1
+	            ) I
 	            ON  c.ClientID = I.sIdCompte
 	       INNER JOIN brut.Contacts bC
 	            ON  I.iRecipientId = bC.OriginalID
 	                AND bC.SourceID = 1
-	WHERE  c.Marque = 7
+	WHERE  I.N = 1
+	       AND c.Marque = 7
 	GROUP BY
 	       bc.MasterID
 	      ,ClientID
@@ -67,7 +78,17 @@ BEGIN
 	      ,SiteId
 	      ,Marque
 	FROM   #clientIDs c
-	       INNER JOIN import.NEO_CusCompteFF I
+	       INNER JOIN (
+	                SELECT RANK() OVER(
+	                           PARTITION BY sIdCompte ORDER BY ActionID 
+	                           DESC
+	                          ,ImportID DESC
+	                       ) AS N
+	                      ,sIdCompte
+	                      ,iRecipientId
+	                FROM   import.NEO_CusCompteFF
+	                WHERE  LigneStatut <> 1
+	            ) I
 	            ON  c.ClientID = I.sIdCompte
 	       INNER JOIN brut.Contacts bC
 	            ON  I.iRecipientId = bC.OriginalID
