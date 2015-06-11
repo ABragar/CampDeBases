@@ -1,18 +1,10 @@
-﻿USE AmauryVUC
+﻿--Durée des sessions
 
-DECLARE @d DATE = '20140908'
+DECLARE @p NVARCHAR(1) = N'J';
+--N'S'            
+--N'M'            
 
-TRUNCATE TABLE report.StatsWebSessions;
-	
-EXEC report.RemplirMasterIDsMapping;
-
-EXEC report.RemplirStatsWebSessions @d; 
-
-EXEC report.RemplirStatsWebSessionsWeek @d;
-
-EXEC report.RemplirStatsWebSessionsMonth @d;
-
-WITH s AS (
+;WITH s AS (
          SELECT MasterID
          FROM   dbo.Contacts
      ),
@@ -32,16 +24,14 @@ WITH s AS (
 SELECT COUNT(SessionsCount)
       ,Period
       ,Sуries
+      ,r.Appartenance
 FROM   report.StatsWebSessions r
        INNER JOIN t
             ON  t.MasterID = r.MasterID
-WHERE --r.PeriodType=N'J'
---r.PeriodType=N'S'            
-r.PeriodType=N'J'            
-
+WHERE r.PeriodType=@p
 GROUP BY
        Period
       ,Sуries
       ,SуriesSort
+      ,r.Appartenance
 ORDER BY Period, SуriesSort
---SELECT * FROM report.StatsWebSessions	 ORDER BY PeriodType, Period, SуriesSort
