@@ -49,6 +49,12 @@
           <AssociatedConnUserName />
           <FullPath>rep_ProfounderDesSessions.sql</FullPath>
         </FileNode>
+        <FileNode Name="rep_VisiteursAPotentiel.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>rep_VisiteursAPotentiel.sql</FullPath>
+        </FileNode>
         <FileNode Name="rep_VolumetrieDesSessions.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
