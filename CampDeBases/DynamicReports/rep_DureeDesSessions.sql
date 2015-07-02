@@ -21,10 +21,10 @@ DECLARE @p NVARCHAR(1) = N'J';
                 --     ON  i.CodeVAlN = t.TypologieID
      )
 
-SELECT COUNT(SessionsCount)
+SELECT SUM(SessionsCount)
       ,Period
       ,Sуries
-      ,r.Appartenance
+      ,r.Marque
 FROM   report.StatsWebSessions r
        INNER JOIN t
             ON  t.MasterID = r.MasterID
@@ -33,5 +33,6 @@ GROUP BY
        Period
       ,Sуries
       ,SуriesSort
-      ,r.Appartenance
+      ,r.Marque
+      --,r.Appartenance
 ORDER BY Period, SуriesSort

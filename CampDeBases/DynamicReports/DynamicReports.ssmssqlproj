@@ -19,6 +19,12 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
+        <FileNode Name="_notUse_report.RemplirMasterIDsMapping.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>_notUse_report.RemplirMasterIDsMapping.sql</FullPath>
+        </FileNode>
         <FileNode Name="CreateAdditionalsObj.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
@@ -61,11 +67,11 @@
           <AssociatedConnUserName />
           <FullPath>rep_VolumetrieDesSessions.sql</FullPath>
         </FileNode>
-        <FileNode Name="report.RemplirMasterIDsMapping.sql">
+        <FileNode Name="report.GetPeriodsList.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
           <AssociatedConnUserName />
-          <FullPath>report.RemplirMasterIDsMapping.sql</FullPath>
+          <FullPath>report.GetPeriodsList.sql</FullPath>
         </FileNode>
         <FileNode Name="report.RemplirStatsVolumetrieSessionsByPeriod.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>

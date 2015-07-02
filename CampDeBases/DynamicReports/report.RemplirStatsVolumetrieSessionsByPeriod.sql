@@ -3,7 +3,8 @@ GO
 ALTER PROC report.RemplirStatsVolumetrieSessionsByPeriod (@d DATE ,@period NVARCHAR(1)) 
 AS
 BEGIN
-	--SET NOCOUNT ON;
+
+--SET NOCOUNT ON;
 	IF OBJECT_ID('tempdb..#periods') IS NOT NULL
 	    DROP TABLE #periods
 	
@@ -27,33 +28,35 @@ BEGIN
 	
 	CREATE TABLE #SessionsByPeriod
 	(
-		SiteID         NVARCHAR(18)
-	   ,ClientID       NVARCHAR(18)
-	   ,SessionID      NVARCHAR(255)
+		SiteID         Int
+	   ,MasterID       Int
+	   ,SessionID      int
 	   ,namePeriod     NVARCHAR(255)
-	   ,PagesVues      INT
+	   ,PagesNb      INT
+	   ,PagesPremiumNb INT
 	)
 	
 	INSERT INTO #SessionsByPeriod
 	  (
 	    SiteID
-	   ,ClientID
+	   ,MasterID
 	   ,SessionID
 	   ,namePeriod
-	   ,PagesVues
+	   ,PagesNb
+	   ,PagesPremiumNb
 	  )
 	SELECT ix.SiteID
-	      ,ix.ClientID
-	      ,ix.SessionID
+	      ,ix.MasterID
+	      ,ix.VisiteId
 	      ,p.namePeriod
-	      ,ix.PagesVues
+	      ,ix.PagesNb
+	      ,ix.PagesPremiumNb
 	FROM   #periods p
-	       LEFT JOIN import.Xiti_Sessions ix
-	            ON  ix.SessionDebut >= p.StartPeriod
-	                AND iX.SessionDebut <= p.EndPeriod
-	WHERE  ix.LigneStatut <> 1
+	       LEFT JOIN etl.VisitesWeb ix
+	            ON  ix.DateVisite >= p.StartPeriod
+	                AND iX.DateVisite <= p.EndPeriod
 	
-	CREATE INDEX ix_SiteID_ClientID ON #SessionsByPeriod(SiteID ,ClientID)
+	CREATE INDEX ix_SiteID_ClientID ON #SessionsByPeriod(SiteID ,MasterID)
 	
 	;
 	WITH vsMaster AS (
@@ -62,18 +65,16 @@ BEGIN
 	               ,namePeriod
 	               ,Appartenance
 	               ,ix.SiteID
-	               ,ix.PagesVues
+	               ,ix.PagesNb,
+	               ix.PagesPremiumNb
 	         FROM   #SessionsByPeriod ix
-	                INNER JOIN report.StatsMasterIDsMapping m
-	                     ON  ix.ClientID = m.ClientID
-	                         AND ix.SiteID = m.SiteID
 	                INNER JOIN ref.SitesWeb AS sw
-	                     ON  m.SiteID = sw.WebSiteID
+	                     ON  ix.SiteID = sw.WebSiteID
 	     )
 	     ,v1 AS (
 	         --Le Parisien.fr
 	         SELECT COUNT(SessionID)      AS SessionsCount
-	               ,SUM(PagesVues)        AS PagesVues
+	               ,SUM(PagesNb-PagesPremiumNb)        AS PagesVues
 	               ,masterId
 	               ,namePeriod
 	               ,'Le Parisien.fr'      AS Category
@@ -93,7 +94,7 @@ BEGIN
 	     ,v2 AS (
 	         --premium
 	         SELECT COUNT(*)              AS SessionsCount
-	               ,SUM(PagesVues)        AS PagesVues
+	               ,SUM(PagesPremiumNb)        AS PagesVues
 	               ,m.masterId
 	               ,m.namePeriod
 	               ,'Premium'             AS Category
@@ -103,11 +104,7 @@ BEGIN
 	         FROM   vsMaster m
 	                INNER JOIN ref.SitesWeb AS sw
 	                     ON  sw.WebSiteID = SiteID
-	                INNER JOIN dbo.SessionsPremium AS sp
-	                     ON  m.masterID = sp.MasterID
-	                INNER JOIN #periods p
-	                     ON  sp.DateVisite BETWEEN p.StartPeriod AND p.EndPeriod
-	         WHERE  sw.WebSiteID = 40086
+	         WHERE  sw.WebSiteID = 40086 AND PagesPremiumNb > 0
 	         GROUP BY
 	                m.namePeriod
 	               ,m.masterId
@@ -117,7 +114,7 @@ BEGIN
 	     ,v3 AS (
 	         --L’Equipe
 	         SELECT COUNT(SessionID)    AS SessionsCount
-	               ,SUM(PagesVues)      AS PagesVues
+	               ,SUM(PagesNb-PagesPremiumNb)      AS PagesVues
 	               ,m.masterId
 	               ,namePeriod
 	               ,'Marque L’Equipe'   AS Category
@@ -137,7 +134,7 @@ BEGIN
 	     ,v4 AS (
 	         --L’Equipe
 	         SELECT COUNT(SessionID)   AS SessionsCount
-	               ,SUM(PagesVues)     AS PagesVues
+	               ,SUM(PagesNb-PagesPremiumNb)     AS PagesVues
 	               ,m.masterId
 	               ,namePeriod
 	               ,'Marque France Football' AS Category
@@ -157,7 +154,7 @@ BEGIN
 	     ,v5 AS (
 	         --Marques L’Equipe
 	         SELECT COUNT(SessionID)     AS SessionsCount
-	               ,SUM(PagesVues)       AS PagesVues
+	               ,SUM(PagesNb-PagesPremiumNb)       AS PagesVues
 	               ,m.masterId
 	               ,namePeriod
 	               ,'Editeur L’Equipe'   AS Category
@@ -212,7 +209,20 @@ BEGIN
 	      ,Marque
 	      ,Appartenance
 	      ,PagesVues
-	FROM   res;
+	FROM   res
+	UNION ALL
+	SELECT masterId
+	      ,Sum(SessionsCount)
+	      ,namePeriod
+	      ,@period
+	      ,N'Group'
+	      ,'Pour Le Groupe'
+	      ,0
+	      ,0
+	      ,Sum(PagesVues)
+	FROM   res
+	GROUP BY masterID,namePeriod 
+	;
 	
 	DROP TABLE #periods
 	DROP TABLE #SessionsByPeriod

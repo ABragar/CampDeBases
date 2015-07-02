@@ -16,7 +16,7 @@ DECLARE @p NVARCHAR(1) = N'J';
                 --     ) i
                 --     ON  i.CodeVAlN = t.TypologieID
      )
-SELECT COUNT(SessionsCount)
+SELECT SUM(SessionsCount)
       ,Period
       ,Category
 FROM   report.StatsVolumetrieSessions r

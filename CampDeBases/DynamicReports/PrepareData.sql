@@ -1,11 +1,10 @@
 ﻿--prepare the data
-
-DECLARE @d DATE = '20150607'
+DECLARE @d DATE = '20150627'
 
 TRUNCATE TABLE report.StatsWebSessions;
---TRUNCATE TABLE report.StatsVolumetrieSessions;
+TRUNCATE TABLE report.StatsVolumetrieSessions;
 	
---EXEC report.RemplirMasterIDsMapping;
+--EXEC report.RemplirMasterIDsMapping; --
 -- for Durée des sessions report
 EXEC report.RemplirStatsWebSessionsByPeriod @d, N'J' 
 EXEC report.RemplirStatsWebSessionsByPeriod @d, N'S'
@@ -16,3 +15,6 @@ exec report.RemplirStatsVolumetrieSessionsByPeriod @d, N'J';
 
 --for reports Fréquence des sessions, Profondeur des sessions
 exec report.RemplirStatsVolumetrieSessionsByPeriod @d, N'M'
+
+--SELECT * FROM report.StatsWebSessions
+SELECT * FROM report.StatsVolumetrieSessions

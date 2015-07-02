@@ -120,7 +120,8 @@ RETURNS DATETIME
 AS
 BEGIN
 	DECLARE @res DATETIME
-	SELECT @res = DATEADD(MONTH ,1 ,DATEADD(DAY ,1 -DAY(@d) ,@d)) -1
+	--SELECT @res = DATEADD(MONTH ,1 ,DATEADD(DAY ,1 -DAY(@d) ,@d)) -1
+	SELECT @res = DATEADD(SECOND, -1, DATEADD(MONTH ,1 ,DATEADD(DAY ,1 -DAY(@d) ,@d)))
 	RETURN @res
 END
 GO
@@ -143,6 +144,7 @@ CREATE TABLE report.StatsWebSessions
    ,Sуries            NVARCHAR(255)
    ,SуriesSort        INT
    ,periodType        NVARCHAR(1) NOT NULL -- J S M
+   ,Marque            INT
    ,Appartenance      INT
 )
 
@@ -176,112 +178,19 @@ IF EXISTS (
    )
     DROP TABLE report.StatsMasterIDsMapping
 
-CREATE TABLE report.StatsMasterIDsMapping
-(
-	MasterID     INT NOT NULL
-   ,ClientID     NVARCHAR(18)
-   ,SiteID       NVARCHAR(18)
-   ,MarqueId     INT
-)
-CREATE INDEX IX_StatsMasterIDsMapping_ClientIDSiteID 
-    ON report.StatsMasterIDsMapping (ClientID ,SiteID);
+--CREATE TABLE report.StatsMasterIDsMapping
+--(
+--	MasterID     INT NOT NULL
+--   ,ClientID     NVARCHAR(18)
+--   ,SiteID       NVARCHAR(18)
+--   ,MarqueId     INT
+--)
+--CREATE INDEX IX_StatsMasterIDsMapping_ClientIDSiteID 
+--    ON report.StatsMasterIDsMapping (ClientID ,SiteID);
 
 GO
 
-ALTER FUNCTION report.GetPeriodsList
-(
-	@d     DATE
-   ,@p     NVARCHAR(1)
-)
-RETURNS @res TABLE (
-            namePeriod NVARCHAR(255)
-           ,StartPeriod DATETIME
-           ,EndPeriod DATETIME
-        )
-AS
 
-BEGIN
-	IF @p = N'J'
-	BEGIN
-	    WITH num(n) AS(
-	             SELECT 0 
-	             UNION ALL
-	             SELECT n + 1
-	             FROM   num
-	             WHERE  n < 6
-	         )
-	         ,dat AS (
-	             SELECT n
-	             FROM   num
-	         )
-	         ,periods AS (
-	             SELECT 'J-' + CAST(n + 1 AS NVARCHAR) AS namePeriod
-	                   ,etl.GetBeginOfDay(DATEADD(DAY ,-n ,@d)) StartPeriod
-	                   ,etl.GetEndOfDay(DATEADD(DAY ,-n ,@d)) EndPeriod
-	             FROM   dat
-	         )
-	    
-	    INSERT @res
-	    SELECT *
-	    FROM   periods AS p;
-	END
-	
-	IF @p = N'S'
-	BEGIN
-	    WITH num(n) AS(
-	             SELECT 0 
-	             UNION ALL
-	             SELECT n + 1
-	             FROM   num
-	             WHERE  n < 11
-	         )
-	         ,dat AS (
-	             SELECT n
-	             FROM   num
-	         )
-	         ,periods AS (
-	             SELECT 'S-' + CAST(n AS NVARCHAR) AS namePeriod
-	                   ,DATEADD(DAY ,-6 ,etl.GetEndOfWeek(DATEADD(week ,-n ,@d))) 
-	                    StartPeriod
-	                   ,etl.GetEndOfDay(etl.GetEndOfWeek(DATEADD(week ,-n ,CAST(@d AS DATETIME)))) 
-	                    EndPeriod
-	             FROM   dat
-	         )
-	    
-	    INSERT @res
-	    SELECT *
-	    FROM   periods AS p;
-	END
-	
-	IF @p = N'M'
-	BEGIN
-	    WITH num(n) AS(
-	             SELECT 0 
-	             UNION ALL
-	             SELECT n + 1
-	             FROM   num
-	             WHERE  n < 11
-	         )
-	         ,dat AS (
-	             SELECT n
-	             FROM   num
-	         )
-	         ,periods AS (
-	             SELECT 'M-' + CAST(n AS NVARCHAR) AS namePeriod
-	                   ,etl.GetBeginOfMonth(DATEADD(MONTH ,-n ,@d)) AS 
-	                    StartPeriod
-	                   ,etl.GetEndOfMonth(DATEADD(MONTH ,-n ,@d)) AS EndPeriod
-	             FROM   dat
-	         )
-	    
-	    INSERT @res
-	    SELECT *
-	    FROM   periods AS p;
-	END
-	
-	RETURN
-END
-GO
 
  
  

@@ -3,9 +3,7 @@ GO
 ALTER PROC report.RemplirStatsWebSessionsByPeriod (@d DATE ,@period NVARCHAR(1)) 
 AS
 BEGIN
-	--SET NOCOUNT ON;
-	
-	SET NOCOUNT ON;
+SET NOCOUNT ON;
 	IF OBJECT_ID('tempdb..#periods') IS NOT NULL
 	    DROP TABLE #periods
 	
@@ -29,9 +27,9 @@ BEGIN
 	
 	CREATE TABLE #SessionsByPeriod
 	(
-		SiteID         NVARCHAR(18)
-	   ,ClientID       NVARCHAR(18)
-	   ,SessionID      NVARCHAR(255)
+		SiteID         Int
+	   ,MasterID       Int
+	   ,SessionID      int
 	   ,namePeriod     NVARCHAR(255)
 	   ,duration int
 	)
@@ -39,96 +37,82 @@ BEGIN
 	INSERT INTO #SessionsByPeriod
 	  (
 	    SiteID
-	   ,ClientID
+	   ,MasterID
 	   ,SessionID
 	   ,namePeriod
 	   ,duration
 	  )
+
 	SELECT ix.SiteID
-	      ,ix.ClientID
-	      ,ix.SessionID
+	      ,ix.MasterID
+	      ,ix.VisiteId
 	      ,p.namePeriod
-	      ,DATEDIFF(second ,iX.SessionDebut ,iX.SessionFin) AS duration
+	      ,DATEDIFF(second ,iX.DateVisite ,iX.FinVisite) AS duration
 	FROM   #periods p
-	       LEFT JOIN import.Xiti_Sessions ix
-	            ON  ix.SessionDebut >= p.StartPeriod
-	                AND iX.SessionDebut <= p.EndPeriod
-	WHERE  ix.LigneStatut <> 1
+	       LEFT JOIN etl.VisitesWeb ix
+	            ON  ix.DateVisite >= p.StartPeriod
+	                AND iX.DateVisite <= p.EndPeriod
 	
-	CREATE INDEX ix_SiteID_ClientID ON #SessionsByPeriod (SiteID,ClientID)	
-	
-	--WITH periods AS (
-	--         SELECT *
-	--         FROM   report.GetPeriodsList(@d ,@period)
-	--     ) 
-	--     , SessionsByPeriod AS (
-	--         SELECT ix.SiteID
-	--               ,ix.ClientID
-	--               ,ix.SessionID
-	--               ,p.namePeriod
-	--               ,DATEDIFF(second ,iX.SessionDebut ,iX.SessionFin) AS duration
-	--         FROM   import.Xiti_Sessions ix
-	--                INNER JOIN periods p
-	--                     ON  ix.SessionDebut >= p.StartPeriod
-	--                         AND iX.SessionDebut <= p.EndPeriod
-	--         WHERE  ix.LigneStatut <> 1
-	--     )
-	     ;with vsMaster AS (
+	CREATE INDEX ix_SiteID_ClientID ON #SessionsByPeriod(SiteID ,MasterID) 
+	;
+	WITH vsMaster AS (
 	         SELECT masterId
 	               ,ix.SessionID
 	               ,namePeriod
 	               ,duration
+	               ,sw.Marque
 	               ,Appartenance
 	         FROM   #SessionsByPeriod ix
-	                INNER JOIN report.StatsMasterIDsMapping m
-	                     ON  ix.ClientID = m.ClientID
-	                         AND ix.SiteID = m.SiteID
 	                INNER JOIN ref.SitesWeb AS sw
-	                     ON  m.SiteID = sw.WebSiteID
+	                     ON  ix.SiteID = sw.WebSiteID
 	     )
 	     ,res AS (
 	         SELECT MasterId
 	               ,SessionId
 	               ,namePeriod
+	               ,Marque
 	               ,Appartenance
 	               ,Sуries = CASE 
 	                              WHEN duration < 60 THEN N'< 1 mn'
 	                              WHEN duration >= 60
-	         AND duration < 300 THEN N'1 a 5 mn'
-	             WHEN duration >= 300
-	         AND duration < 600 THEN N'6 a 10 mn'
-	             WHEN duration >= 600
-	         AND duration < 1800 THEN N'10 a 30 mn'
-	             WHEN duration >= 1800 THEN N'> 30 mn'
+	         AND duration < 360 THEN N'1 a 5 mn'
+	             WHEN duration >= 360
+	         AND duration < 660 THEN N'6 a 10 mn'
+	             WHEN duration >= 660
+	         AND duration < 1860 THEN N'10 a 30 mn'
+	             WHEN duration >= 1860 THEN N'> 30 mn'
 	             END
 	        ,SуriesSort = CASE 
 	                           WHEN duration < 60 THEN 1
 	                           WHEN duration >= 60
-	         AND duration < 300 THEN 2
-	             WHEN duration >= 300
-	         AND duration < 600 THEN 3
-	             WHEN duration >= 600
-	         AND duration < 1800 THEN 4
-	             WHEN duration >= 1800 THEN 5
+	         AND duration < 360 THEN 2
+	             WHEN duration >= 360
+	         AND duration < 660 THEN 3
+	             WHEN duration >= 660
+	         AND duration < 1860 THEN 4
+	             WHEN duration >= 1860 THEN 5
 	             END 
 	             
 	             FROM vsMaster
 	     )
 	
-	INSERT INTO report.StatsWebSessions
+INSERT INTO report.StatsWebSessions
 	SELECT masterId
 	      ,COUNT(SessionId)
 	      ,namePeriod
 	      ,Sуries
 	      ,SуriesSort
 	      ,@period
+	      ,Marque
 	      ,Appartenance
+	      
 	FROM   res
 	GROUP BY
 	       masterId
 	      ,namePeriod
 	      ,Sуries
 	      ,SуriesSort
+	      ,Marque
 	      ,Appartenance
 END
 
