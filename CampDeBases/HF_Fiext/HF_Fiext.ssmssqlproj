@@ -3,17 +3,17 @@
   <Items>
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
-        <ConnectionNode Name="(local)\FRENCH:PC\Bragar.A">
-          <Created>2015-04-17T10:11:46.5158286+03:00</Created>
+        <ConnectionNode Name="PC\MSSQLDEV:PC\Bragar.A">
+          <Created>2015-07-07T14:44:09.7914694+03:00</Created>
           <Type>SQL</Type>
-          <Server>(local)\FRENCH</Server>
+          <Server>PC\MSSQLDEV</Server>
           <UserName />
           <Authentication>Windows Authentication</Authentication>
-          <InitialDB>master</InitialDB>
+          <InitialDB />
           <LoginTimeout>15</LoginTimeout>
           <ExecutionTimeout>0</ExecutionTimeout>
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
+          <ApplicationName />
         </ConnectionNode>
       </Items>
     </LogicalFolder>
@@ -32,8 +32,8 @@
           <FullPath>2_Rejet_HF_fiext_create.sql</FullPath>
         </FileNode>
         <FileNode Name="create bcpformatFile.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>create bcpformatFile.sql</FullPath>
         </FileNode>

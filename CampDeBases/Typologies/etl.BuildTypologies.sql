@@ -1,4 +1,6 @@
-﻿USE [AmauryVUC]
+﻿
+
+USE [AmauryVUC]
 GO
 /****** Object:  StoredProcedure [etl].[BuildTypologies]    Script Date: 07/02/2015 11:35:58 ******/
 SET ANSI_NULLS ON
@@ -23,6 +25,9 @@ as
 -- Modifications :	prise en compte de SourceID=10 -- PVL
 -- Modification date: 10/02/2015
 -- Modifications :	suppression des futurs face aux actuels et nouveaux
+-- Modification date :	06/07/2015
+-- Modified by :		Andrei BRAGAR
+-- Modifications : Add new typologies "Termines", "Visiteurs identifies" (VIMN,VIMA, VIMI) 
 -- =============================================
 
 
@@ -333,6 +338,59 @@ update a
 set Typologie=3
 from dbo.Abonnements a inner join #T_Abos b on a.AbonnementID=b.AbonnementID
 
+	--82 CSPGT - Clients souscripteurs papier gratuits termines
+	TRUNCATE TABLE #T_Abos
+	INSERT #T_Abos
+	  (
+	    MasterID
+	   ,MarqueID
+	   ,DebutFinAboDate
+	  )
+	SELECT a.MasterID
+	      ,b.Marque
+	      ,a.FinAboDate
+	FROM   dbo.Abonnements a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.CatalogueAbosID = b.CatalogueAbosID
+	WHERE  a.SourceID = 3
+		   and b.SupportAbo=2 -- Papier
+	       AND a.StatutAbo = 2 
+	       AND b.MontantAbo = 0.00 -- Gratuit
+	       AND DATEDIFF(DAY ,GETDATE() ,a.FinAboDate) BETWEEN -14 AND 0 
+	
+	-- Eliminer les doublons eventuels
+	TRUNCATE TABLE #T_Abos_Agreg
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    N
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT COUNT(*)  AS N
+	      ,MasterID
+	      ,MarqueID
+	FROM   #T_Abos      a
+	GROUP BY
+	       MasterID
+	      ,MarqueID
+	
+	INSERT #T_Lignes_Typologies
+	  (
+	    TypologieID
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT 82             AS TypologieID
+	      ,a.MasterID
+	      ,a.MarqueID
+	FROM   #T_Abos_Agreg     a
+	
+	UPDATE a
+	SET    Typologie = 82
+	FROM   dbo.Abonnements a
+	       INNER JOIN #T_Abos b
+	            ON  a.AbonnementID = b.AbonnementID
 	
 -- 4	CAPGR	Abonné récent dont l'abonnement papier gratuit est arrêté depuis moins de six mois.
 
@@ -353,7 +411,7 @@ a.MasterID
 from dbo.Abonnements a
 inner join ref.CatalogueAbonnements b
 on a.CatalogueAbosID=b.CatalogueAbosID
-where a.FinAboDate>DATEADD(month,-6,getdate())
+where a.FinAboDate>DATEADD(month,-6,getdate()) and not (datediff(day,getdate(),a.FinAboDate) between -14 and 0)
 and a.StatutAbo=2 -- Echu
 and (coalesce(a.ModePaiement,0) in (23,24) or b.OriginalID like N'%GRATUIT%' or b.OriginalID like N'% 0E %') -- gratuit
 and a.SourceID=3 -- SDVP
@@ -718,6 +776,65 @@ select
 , a.MarqueID
 from #T_Abos_Agreg a
 
+	--83 CSPPT - Clients souscripteurs papier payants termines
+	TRUNCATE TABLE #T_Abos
+	
+	INSERT #T_Abos
+	  (
+	    MasterID
+	   ,MarqueID
+	   ,DebutFinAboDate
+	   ,AbonnementID
+	  )
+	SELECT a.MasterID
+	      ,b.Marque
+	      ,a.FinAboDate
+	      ,a.AbonnementID
+	FROM   dbo.Abonnements a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.CatalogueAbosID = b.CatalogueAbosID
+	WHERE  a.SourceID = 3
+			and b.SupportAbo=2 -- Papier
+	       AND a.StatutAbo = 2
+	       AND b.MontantAbo <> 0.00 -- Payant
+	       AND DATEDIFF(DAY ,GETDATE() ,a.FinAboDate) BETWEEN -14 AND 0
+
+	
+	
+	UPDATE a
+	SET    Typologie = 83
+	FROM   dbo.Abonnements a
+	       INNER JOIN #T_Abos b
+	            ON  a.AbonnementID = b.AbonnementID
+	
+	-- Eliminer les doublons eventuels
+	TRUNCATE TABLE #T_Abos_Agreg
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    N
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT COUNT(*)  AS N
+	      ,MasterID
+	      ,MarqueID
+	FROM   #T_Abos      a
+	GROUP BY
+	       MasterID
+	      ,MarqueID
+	
+	INSERT #T_Lignes_Typologies
+	  (
+	    TypologieID
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT 83             AS TypologieID
+	      ,a.MasterID
+	      ,a.MarqueID
+	FROM   #T_Abos_Agreg     a
+
 -- 9	CAPPR	Abonné récent dont l'abonnement papier payant est arrêté depuis moins de six mois.
 
 truncate table #T_Abos
@@ -737,7 +854,7 @@ a.MasterID
 from dbo.Abonnements a
 inner join ref.CatalogueAbonnements b
 on a.CatalogueAbosID=b.CatalogueAbosID
-where a.FinAboDate>DATEADD(month,-6,getdate())
+where a.FinAboDate>DATEADD(month,-6,getdate()) and not (datediff(day,getdate(),a.FinAboDate) between -14 and 0)
 and a.StatutAbo=2 -- Echu
 and not (coalesce(a.ModePaiement,0) in (23,24) or b.OriginalID like N'%GRATUIT%' or b.OriginalID like N'% 0E %') -- payant
 and a.SourceID=3 -- SDVP
@@ -1133,6 +1250,63 @@ select
 , a.MarqueID
 from #T_Abos_Agreg a
 
+	-- 84 CSNGT - Clients souscripteurs numerique gratuits termines
+	TRUNCATE TABLE #T_Abos
+	
+	INSERT #T_Abos
+	  (
+	    MasterID
+	   ,MarqueID
+	   ,DebutFinAboDate
+	   ,AbonnementID
+	  )
+	SELECT a.MasterID
+	      ,b.Marque
+	      ,a.FinAboDate
+	      ,a.AbonnementID
+	FROM   dbo.Abonnements a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.CatalogueAbosID = b.CatalogueAbosID
+	WHERE  a.SourceID IN (1 ,3 ,10) -- Neolane et PVL
+	       AND a.StatutAbo = 2 
+	       AND b.MontantAbo = 0.00 -- Gratuit
+	       AND b.SupportAbo = 1 -- Numerique
+	       AND DATEDIFF(DAY ,GETDATE() ,a.FinAboDate) BETWEEN -14 AND 0
+	
+	UPDATE a
+	SET    Typologie = 84
+	FROM   dbo.Abonnements a
+	       INNER JOIN #T_Abos b
+	            ON  a.AbonnementID = b.AbonnementID
+	
+	-- Eliminer les doublons eventuels
+	TRUNCATE TABLE #T_Abos_Agreg
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    N
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT COUNT(*)  AS N
+	      ,MasterID
+	      ,MarqueID
+	FROM   #T_Abos      a
+	GROUP BY
+	       MasterID
+	      ,MarqueID
+	
+	INSERT #T_Lignes_Typologies
+	  (
+	    TypologieID
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT 84             AS TypologieID
+	      ,a.MasterID
+	      ,a.MarqueID
+	FROM   #T_Abos_Agreg     a
+
 -- 14	CANGR	Abonné récent dont l'abonnement numérique gratuit est arrêté depuis moins de six mois.
 
 truncate table #T_Abos
@@ -1152,7 +1326,7 @@ a.MasterID
 from dbo.Abonnements a
 inner join ref.CatalogueAbonnements b
 on a.CatalogueAbosID=b.CatalogueAbosID
-where a.FinAboDate>DATEADD(month,-6,getdate())
+where a.FinAboDate>DATEADD(month,-6,getdate()) and not (datediff(day,getdate(),a.FinAboDate) between -14 and 0)
 and a.StatutAbo=2 -- Echu
 and (coalesce(a.ModePaiement,0) in (23,24) or b.OriginalID like N'%GRATUIT%' or b.OriginalID like N'% 0E %') -- gratuit
 and a.SourceID=3 -- SDVP
@@ -1557,6 +1731,65 @@ select
 , a.MarqueID
 from #T_Abos_Agreg a
 
+	-- 85 CSNPT - Clients souscripteurs numerique payants termines
+	
+	TRUNCATE TABLE #T_Abos
+	
+	INSERT #T_Abos
+	  (
+	    MasterID
+	   ,MarqueID
+	   ,DebutFinAboDate
+	   ,AbonnementID
+	  )
+	SELECT a.MasterID
+	      ,b.Marque
+	      ,a.FinAboDate
+	      ,a.AbonnementID
+	FROM   dbo.Abonnements a
+	       INNER JOIN ref.CatalogueAbonnements b
+	            ON  a.CatalogueAbosID = b.CatalogueAbosID
+	WHERE  a.SourceID IN (1 ,3 ,10) -- Neolane et PVL
+	       AND a.StatutAbo = 2
+	       AND b.MontantAbo <> 0.00 -- Payant
+	       AND b.SupportAbo = 1 -- Numerique
+	       AND DATEDIFF(DAY ,GETDATE() ,a.FinAboDate) BETWEEN -14 AND 0
+	
+	UPDATE a
+	SET    Typologie = 85
+	FROM   dbo.Abonnements a
+	       INNER JOIN #T_Abos b
+	            ON  a.AbonnementID = b.AbonnementID
+	
+	
+	-- Eliminer les doublons eventuels
+	TRUNCATE TABLE #T_Abos_Agreg
+	
+	INSERT #T_Abos_Agreg
+	  (
+	    N
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT COUNT(*)  AS N
+	      ,MasterID
+	      ,MarqueID
+	FROM   #T_Abos      a
+	GROUP BY
+	       MasterID
+	      ,MarqueID
+	
+	INSERT #T_Lignes_Typologies
+	  (
+	    TypologieID
+	   ,MasterID
+	   ,MarqueID
+	  )
+	SELECT 85             AS TypologieID
+	      ,a.MasterID
+	      ,a.MarqueID
+	FROM   #T_Abos_Agreg     a
+
 -- 19	CANPR	Abonné récent dont l'abonnement numérique payant est arrêté depuis moins de six mois.
 
 truncate table #T_Abos
@@ -1576,7 +1809,7 @@ a.MasterID
 from dbo.Abonnements a
 inner join ref.CatalogueAbonnements b
 on a.CatalogueAbosID=b.CatalogueAbosID
-where a.FinAboDate>DATEADD(month,-6,getdate())
+where a.FinAboDate>DATEADD(month,-6,getdate()) and not (datediff(day,getdate(),a.FinAboDate) between -14 and 0)
 and a.StatutAbo=2 -- Echu
 and not (coalesce(a.ModePaiement,0) in (23,24) or b.OriginalID like N'%GRATUIT%' or b.OriginalID like N'% 0E %') -- Payant
 and a.SourceID=3 -- SDVP
@@ -3244,11 +3477,221 @@ select
 , a.MarqueID
 from #T_Abos_Agreg a
 
+
+IF OBJECT_ID('tempdb..#T_Vim') IS NOT NULL
+    DROP TABLE #T_Vim
+	
+CREATE TABLE #T_Vim
+(
+	TypologieID      INT NOT NULL
+   ,MasterID         INT NULL
+   ,MarqueID         INT NULL
+   ,Appartenance     INT NULL
+)
+
+IF OBJECT_ID('tempdb..#T_Vie') IS NOT NULL
+    DROP TABLE #T_Vie
+	
+CREATE TABLE #T_Vie
+(
+	TypologieID     INT NOT NULL
+   ,MasterID        INT NULL
+   ,MarqueID        INT NULL
+)
+
+-- begin VI
+--VIMN 
+;
+WITH firstVisite AS (
+         SELECT masterID
+               ,marque
+               ,sw.Appartenance
+               ,MIN(vw.DateVisite)          minDateVisite
+         FROM   etl.VisitesWeb           AS vw
+                INNER JOIN ref.SitesWeb  AS sw
+                     ON  vw.SiteId = sw.WebSiteID
+         WHERE  masterId IS NOT NULL
+         GROUP BY
+                vw.MasterID
+               ,marque
+               ,Appartenance
+         HAVING MIN(vw.DateVisite) >= DATEADD(MONTH ,-1 ,GETDATE())
+     )
+
+INSERT INTO #T_Vim
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+   ,Appartenance
+  )
+SELECT 86      AS TypologieID
+      ,masterID
+      ,marque  AS MarqueID
+      ,Appartenance
+FROM   firstVisite
+GROUP BY
+       masterID
+      ,marque
+      ,Appartenance
+
+--VIMA
+;
+WITH ACTIVE AS (
+         SELECT masterID
+               ,marque
+               ,sw.Appartenance
+               ,MAX(vw.DateVisite)          maxDateVisite
+         FROM   etl.VisitesWeb           AS vw
+                INNER JOIN ref.SitesWeb  AS sw
+                     ON  vw.SiteId = sw.WebSiteID
+         WHERE  masterId IS NOT NULL
+         GROUP BY
+                vw.MasterID
+               ,marque
+               ,sw.Appartenance
+         HAVING MAX(vw.DateVisite) >= DATEADD(MONTH ,-6 ,GETDATE())
+         AND MAX(vw.DateVisite) < DATEADD(MONTH ,-1 ,GETDATE())
+     )
+
+INSERT INTO #T_Vim
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+   ,Appartenance
+  )
+SELECT 87      AS TypologieID
+      ,masterID
+      ,marque  AS MarqueID
+      ,Appartenance
+FROM   ACTIVE
+GROUP BY
+       masterID
+      ,marque
+      ,Appartenance
+	
+--VIMI       
+;
+WITH inactive AS (
+         SELECT masterID
+               ,marque
+               ,sw.Appartenance
+               ,MAX(vw.DateVisite)          MaxDateVisite
+         FROM   etl.VisitesWeb           AS vw
+                INNER JOIN ref.SitesWeb  AS sw
+                     ON  vw.SiteId = sw.WebSiteID
+         WHERE  masterId IS NOT NULL
+         GROUP BY
+                vw.MasterID
+               ,marque
+               ,sw.Appartenance
+         HAVING MAX(vw.DateVisite) < DATEADD(MONTH ,-6 ,GETDATE())
+     )
+
+INSERT INTO #T_Vim
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+   ,Appartenance
+  )
+SELECT 88      AS TypologieID
+      ,masterID
+      ,marque  AS MarqueID
+      ,Appartenance
+FROM   inactive
+GROUP BY
+       masterID
+      ,marque
+      ,Appartenance
+
+CREATE INDEX idx_masterID ON #T_Vim(MasterID)
+
+INSERT INTO #T_Vie
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+  )
+SELECT DISTINCT CASE 
+                     WHEN x.marqueID <> v1.MarqueID THEN v1.TypologieID + 3 --VIE
+                     ELSE v1.TypologieID --VIM
+                END AS Typologie
+      ,v1.MasterID
+      ,x.MarqueID
+FROM   #T_Vim v1
+       CROSS APPLY (
+    SELECT CodeValN  AS MarqueID
+          ,sw.Appartenance
+    FROM   ref.Misc  AS sw
+    WHERE  TypeRef = N'MARQUE'
+           AND sw.Appartenance = v1.Appartenance
+           AND sw.CodeValN NOT IN (SELECT MarqueID
+                                   FROM   #T_Vim v2
+                                   WHERE  v2.masterID = v1.masterId)
+    GROUP BY
+           sw.CodeValN
+          ,sw.Appartenance
+) x
+INNER JOIN dbo.LienAvecMarques L
+            ON  l.MasterID = v1.MasterID
+                AND l.MarqueID = x.MarqueID
+
+
+--DELETE by priority 90>89>91
+--A 90>(89,91)
+DELETE t2
+FROM   #T_Vie t1
+       INNER JOIN #T_Vie t2
+            ON  t1.MasterID = t2.MasterID
+                AND t1.marqueId = t2.marqueId
+                AND t1.TypologieID = 90
+                AND t2.TypologieID IN (89 ,91)
+
+--N 89 > 91
+DELETE t2
+FROM   #T_Vie t1
+       INNER JOIN #T_Vie t2
+            ON  t1.MasterID = t2.MasterID
+                AND t1.marqueId = t2.marqueId
+                AND t1.TypologieID = 89
+                AND t2.TypologieID = 91
+
+--VIM*
+INSERT INTO #T_Lignes_Typologies
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+  )
+SELECT tv.TypologieID
+      ,tv.MasterID
+      ,tv.MarqueID
+FROM   #T_Vim AS tv
+
+--VIE*
+INSERT INTO #T_Lignes_Typologies
+  (
+    TypologieID
+   ,MasterID
+   ,MarqueID
+  )
+SELECT tv.TypologieID
+      ,tv.MasterID
+      ,tv.MarqueID
+FROM   #T_Vie AS tv
+
+--end VI**
+
 -- Effectuer les suppressions en fonction du tableau des priorités des typologies
 
 -- Suppressions dans les typologies des abonnements
 
 -- Supprimer les nouveaux abonnements face aux abonnements actuels 
+
+
+
 
 delete a
 from #T_Lignes_Typologies a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID
@@ -3429,6 +3872,73 @@ delete a
 from #T_Lignes_Typologies a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID
 where a.TypologieID = 70  -- Inactifs
 and b.TypologieID = 69 -- Actuels
+
+	--delete conflicts for a ....termines typologies
+	--82
+	DELETE a
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 82
+	       AND b.TypologieID IN (1 ,2 ,3, 71)
+	       
+	DELETE b
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 82
+	       AND b.TypologieID IN (4,5) 
+	        
+	--83
+	DELETE a
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 83
+	       AND b.TypologieID IN (6 ,7 ,8,72)
+	       
+	DELETE b
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 83
+	       AND b.TypologieID IN (9,10) 	        
+	--84
+	DELETE a
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 84
+	       AND b.TypologieID IN (11 ,12 ,13, 73)
+	DELETE b
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 84
+	       AND b.TypologieID IN (14,15) 
+	        
+	--85
+	DELETE a
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 85
+	       AND b.TypologieID IN (16 ,17 ,18,74) 
+
+	DELETE b
+	FROM   #T_Lignes_Typologies a
+	       INNER JOIN #T_Lignes_Typologies b
+	            ON  a.MasterID = b.MasterID
+	                AND a.MarqueID = b.MarqueID
+	WHERE  a.TypologieID = 85
+	       AND b.TypologieID IN (19,20) 
 
 -- Après que toutes les typologies ont été calculées dans une table temporaire,
 -- on les insère dans la table dbo.Typologie
