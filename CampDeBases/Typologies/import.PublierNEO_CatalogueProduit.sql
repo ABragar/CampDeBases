@@ -15,8 +15,9 @@ as
 -- à partir des fichiers NEO_CatalogueProduit, NEO_TypeProduit
 -- Il n'y a pas de @FichierTS, puisque les deux tables sont alimentées en annule et remplace 
 -- Et NEO_CusAchats, on utilise la totalité des lignes valides
--- Modification date: 
--- Modifications :
+-- Modification date: 09/07/2015
+-- Modification by: Andrey Bragar
+-- Modifications : add filling field [Physique] in [ref].[CatalogueProduits]
 -- =============================================
 
 begin
@@ -48,7 +49,8 @@ OriginalID nvarchar(255) null
 , Devise nvarchar(16) null
 , NomProduit nvarchar(255) null
 , CategorieProduit nvarchar(255) null
-, Marque int null
+, Marque int NULL
+, Physique BIT NOT NULL DEFAULT(0)
 )
 
 
@@ -202,6 +204,7 @@ a.iProduitId
 ,a.sLibelle
 ,b.sType_produit
 ,@MarqueEquipe -- Marque est toujours l'Equipe
+
 from import.NEO_CatalogueProduit a 
 inner join import.NEO_TypeProduit b -- c'est inutile, si l'on ne veut filtrer par NEO_TypeProduit
 on a.sType_produit=b.sType_produit 
@@ -247,6 +250,13 @@ on  a.OriginalID=b.OriginalID
 where a.OriginalID is not null
 and b.OriginalID is null
 
+--set Physique
+UPDATE cp
+SET Physique = 1
+FROM #T_CatalogueProduits cp
+INNER JOIN etl.TRANSCO AS t ON cp.CategorieProduit = t.Origine AND t.TranscoCode=N'ORIGINEACHAT' and t.SourceId=N'1' AND t.Destination=N'Physique'
+
+
 -- Insérer le tout dans la table ref.CatalogueProduits, en différentiel
 
 insert ref.CatalogueProduits
@@ -258,6 +268,7 @@ OriginalID
 , NomProduit
 , CategorieProduit
 , Marque
+, Physique
 )
 select distinct
 t.OriginalID
@@ -267,6 +278,7 @@ t.OriginalID
 , t.NomProduit
 , t.CategorieProduit
 , t.Marque
+, t.Physique
 from #T_CatalogueProduits t 
 left outer join ref.CatalogueProduits a 
 on t.OriginalID=a.OriginalID
@@ -305,3 +317,4 @@ set LigneStatut=99
 where LigneStatut=0
 
 end
+
