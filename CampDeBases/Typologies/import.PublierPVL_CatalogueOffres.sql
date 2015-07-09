@@ -121,6 +121,7 @@ BEGIN
 	   ,NomProduit
 	   ,CategorieProduit
 	   ,Marque
+	   ,Physique
 	  )
 	SELECT a.OriginalID
 	      ,a.SourceID
@@ -129,6 +130,7 @@ BEGIN
 	      ,a.NomProduit
 	      ,a.CategorieProduit
 	      ,a.Marque
+	      ,0
 	FROM   #T_CatProduits a
 	       LEFT OUTER JOIN ref.CatalogueProduits b
 	            ON  a.OriginalID = b.OriginalID
