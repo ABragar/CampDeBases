@@ -14,6 +14,9 @@ as
 -- Description:	Alimentation de la table ref.CatalogueProduits
 -- à partir des fichiers SDVP_RefArticles et SDVP_RefArticleTarifs
 -- Il n'y a pas de @FichierTS, puisque les deux tables sont alimentées en annule et remplace 
+-- Modification date: 09/07/2015
+-- Modification by: Andrey Bragar
+-- Modifications : add filling field [Physique] in [ref].[CatalogueProduits]
 -- Modification date: 
 -- Modifications :
 -- =============================================
@@ -41,7 +44,8 @@ OriginalID nvarchar(255) null
 , NomProduit nvarchar(255) null
 , CategorieProduit nvarchar(255) null
 , CodeSociete nvarchar(8) null
-, Marque int null
+, Marque int NULL
+, Physique BIT NOT NULL DEFAULT(0)
 )
 
 insert #T_CatalogueProduits
@@ -79,6 +83,12 @@ on b.Valeur=case a.CodeSociete
 		else N'' end 
 and b.TypeRef=N'MARQUE'
 
+-- Physique
+UPDATE a
+SET Physique = 1
+FROM #T_CatalogueProduits a
+WHERE coalesce(a.CategorieProduit,N'')=N'NUM'
+
 create index idx01_T_CatalogueProduits on #T_CatalogueProduits (OriginalID, SourceID, Marque) 
 
 insert ref.CatalogueProduits
@@ -90,6 +100,7 @@ OriginalID
 , NomProduit
 , CategorieProduit
 , Marque
+, Physique
 )
 select distinct
 t.OriginalID
@@ -99,6 +110,7 @@ t.OriginalID
 , t.NomProduit
 , t.CategorieProduit
 , t.Marque
+, Physique
 from #T_CatalogueProduits t 
 left outer join ref.CatalogueProduits a 
 on t.OriginalID=a.OriginalID
