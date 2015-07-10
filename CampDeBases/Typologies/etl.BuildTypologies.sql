@@ -1993,29 +1993,9 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
+and b.SourceID in (1,3,10)
+and b.Physique = 0  --Num
 and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-1,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
-and a.MontantAchat=0.00 -- Gratuit
-
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
 -- numérique ou physique, gratuit ou payant, pour la même marque 
@@ -2068,27 +2048,9 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
-and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-6,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
+and b.SourceID in (1,3,10)
+and b.Physique = 0 
+--coalesce(b.CategorieProduit,N'')=N'NUM'
 and a.MontantAchat=0.00 -- Gratuit
 
 -- Eliminer les doublons éventuels
@@ -2128,27 +2090,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
-and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate<DATEADD(month,-6,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
+and b.SourceID in (1,3,10)
+and b.Physique = 0 
 and a.MontantAchat=0.00 -- Gratuit
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
@@ -2200,29 +2143,9 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
+and b.SourceID in (1,3,10)
+and b.Physique = 0 
 and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-1,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
-and a.MontantAchat<>0.00 -- Payant
-
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
 -- numérique ou physique, gratuit ou payant, pour la même marque 
@@ -2275,27 +2198,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
-and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-6,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
+and b.SourceID in (1,3,10)
+and b.Physique = 0 
 and a.MontantAchat<>0.00 -- Payant
 
 -- Eliminer les doublons éventuels
@@ -2335,27 +2239,6 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')=N'NUM'
-and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-left outer join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate<DATEADD(month,-6,getdate())
-and ( (b.SourceID=1 /* Neolane */ and c.Destination=N'Numérique' ) 
-or (b.SourceID=10 /* PVL : on présuppose que le produit est numérique dans Ventes en ligne */) )
 and a.MontantAchat<>0.00 -- Payant
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
@@ -2406,29 +2289,9 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
-and a.MontantAchat=0.00 -- Gratuit
-
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
 -- numérique ou physique, gratuit ou payant, pour la même marque 
@@ -2481,27 +2344,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
-and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat=0.00 -- Gratuit
 
 -- Eliminer les doublons éventuels
@@ -2541,27 +2385,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
-and a.MontantAchat=0.00 -- Gratuit
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat=0.00 -- Gratuit
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
@@ -2613,29 +2438,9 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-1,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
-and a.MontantAchat<>0.00 -- Payant
-
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
 -- numérique ou physique, gratuit ou payant, pour la même marque 
@@ -2688,27 +2493,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
-and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate>=DATEADD(month,-6,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat<>0.00 -- Payant
 
 -- Eliminer les doublons éventuels
@@ -2748,27 +2534,8 @@ from dbo.AchatsALActe a
 inner join ref.CatalogueProduits b
 on a.ProduitID=b.ProduitID
 where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=3 -- SDVP
-and coalesce(b.CategorieProduit,N'')<>N'NUM' -- Physique
-and a.MontantAchat<>0.00 -- Payant
-
-insert #T_Abos
-(
-MasterID
-, MarqueID
-, DebutFinAboDate
-)
-select 
-a.MasterID
-, a.Marque
-, a.AchatDate
-from dbo.AchatsALActe a
-inner join ref.CatalogueProduits b
-on a.ProduitID=b.ProduitID
-inner join etl.TRANSCO c on b.CategorieProduit=c.Origine and c.TranscoCode=N'ORIGINEACHAT' and c.SourceId=N'1'
-where a.AchatDate<DATEADD(month,-6,getdate())
-and b.SourceID=1 -- Neolane
-and c.Destination=N'Physique' /* Ici, pas de PVL */
+and b.SourceID in (1,3,10)
+and b.Physique = 1  -- Physique
 and a.MontantAchat<>0.00 -- Payant
 
 -- Supprimer ceux qui ont acheté un produit quelconque, 
@@ -3551,7 +3318,7 @@ WITH ACTIVE AS (
                ,marque
                ,sw.Appartenance
          HAVING MAX(vw.DateVisite) >= DATEADD(MONTH ,-6 ,GETDATE())
-         AND MAX(vw.DateVisite) < DATEADD(MONTH ,-1 ,GETDATE())
+         AND MIN(vw.DateVisite) < DATEADD(MONTH ,-1 ,GETDATE())
      )
 
 INSERT INTO #T_Vim
