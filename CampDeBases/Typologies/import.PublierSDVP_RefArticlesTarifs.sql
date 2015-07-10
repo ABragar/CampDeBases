@@ -87,7 +87,7 @@ and b.TypeRef=N'MARQUE'
 UPDATE a
 SET Physique = 1
 FROM #T_CatalogueProduits a
-WHERE coalesce(a.CategorieProduit,N'')=N'NUM'
+WHERE coalesce(a.CategorieProduit,N'')<>N'NUM'
 
 create index idx01_T_CatalogueProduits on #T_CatalogueProduits (OriginalID, SourceID, Marque) 
 
