@@ -1,18 +1,18 @@
+<<<<<<< HEAD
 ﻿/************************************************************
  * Code formatted by SoftTree SQL Assistant © v7.2.338
  * Time: 16.07.2015 12:50:39
  ************************************************************/
 
 USE [AmauryVUC]
+=======
+﻿USE [AmauryVUC]
+>>>>>>> pvl
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 29.04.2015 17:39:55 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 07/10/2015 13:52:27 ******/
+
 ALTER PROC [import].[PublierPVL_Utilisateur] @FichierTS NVARCHAR(255)
 AS
-
 -- =============================================
 -- Author:		Anatoli VELITCHKO
 -- Creation date: 24/10/2014
@@ -542,7 +542,11 @@ BEGIN
 	      ,c.CodePostal = LEFT(pu.HomePostCode ,32)
 	      ,c.Ville = LEFT(pu.HomeTownCity ,80)
 	      ,c.Region = LEFT(pu.HomeCounty ,80)
+<<<<<<< HEAD
+	      ,p.Pays = LEFT(pu.HomeCountry ,80)
+=======
 	      ,c.Pays = LEFT(pu.HomeCountry ,80)
+>>>>>>> pvl
 	FROM   #T_Contacts c
 	       INNER JOIN import.PVL_Utilisateur AS pu
 	            ON  pu.ImportID = c.OriginalID
