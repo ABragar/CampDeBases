@@ -1,9 +1,4 @@
-﻿/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.2.338
- * Time: 16.07.2015 12:50:39
- ************************************************************/
-
-USE [AmauryVUC]
+﻿USE [AmauryVUC]
 GO
 /****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 07/10/2015 13:52:27 ******/
 
@@ -538,7 +533,7 @@ BEGIN
 	      ,c.CodePostal = LEFT(pu.HomePostCode ,32)
 	      ,c.Ville = LEFT(pu.HomeTownCity ,80)
 	      ,c.Region = LEFT(pu.HomeCounty ,80)
-	      ,p.Pays = LEFT(pu.HomeCountry ,80)
+	      ,c.Pays = LEFT(pu.HomeCountry ,80)
 	FROM   #T_Contacts c
 	       INNER JOIN import.PVL_Utilisateur AS pu
 	            ON  pu.ImportID = c.OriginalID
