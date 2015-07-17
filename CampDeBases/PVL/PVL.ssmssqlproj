@@ -98,8 +98,8 @@
           <FullPath>import.PublierPVL_CatalogueOffres_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Utilisateur.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Utilisateur.sql</FullPath>
         </FileNode>

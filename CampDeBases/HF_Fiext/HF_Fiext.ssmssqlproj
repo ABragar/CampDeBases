@@ -38,8 +38,8 @@
           <FullPath>create bcpformatFile.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierHF_Fiext.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierHF_Fiext.sql</FullPath>
         </FileNode>
