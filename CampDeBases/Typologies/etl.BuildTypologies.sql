@@ -28,6 +28,9 @@ as
 -- Modification date :	06/07/2015
 -- Modified by :		Andrei BRAGAR
 -- Modifications : Add new typologies "Termines", "Visiteurs identifies" (VIMN,VIMA, VIMI) 
+-- Modification date :	20/07/2015
+-- Modified by :		Andrei BRAGAR
+-- Modifications : changes in OEN, OEA, OEI  
 -- =============================================
 
 
@@ -3113,9 +3116,9 @@ from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a
 
 -- Enlever ceux qui ont un opt-in marque ou partenaire
 
-delete a
-from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--delete a
+--from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
+--where b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
 
 insert #T_Lignes_Typologies
 (
@@ -3174,9 +3177,10 @@ from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a
 
 delete a
 from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
-	or b.TypologieID in (79) -- Nouveau 
-	)
+where b.TypologieID in (79)
+--where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--	or b.TypologieID in (79) -- Nouveau 
+--	)
 
 insert #T_Lignes_Typologies
 (
@@ -3228,9 +3232,10 @@ from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a
 
 delete a
 from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
-	or b.TypologieID in (79,80) -- Nouveau et actif
-	)
+WHERE b.TypologieID in (79,80)
+--where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--	or b.TypologieID in (79,80) -- Nouveau et actif
+--	)
 
 insert #T_Lignes_Typologies
 (
