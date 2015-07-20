@@ -22,6 +22,9 @@ as
 -- Modification date: 20/11/2014
 -- Modifications :	1) si seulement optin est modifié, on ne met pas ModifieTop=1 dans les Contacts
 --					2) les opt-out
+-- Modified by :	Andrei BRAGAR
+-- Modification date: 20/07/2015
+-- Modifications : add optin_news_them_psg
 -- =============================================
 
 begin
@@ -82,6 +85,7 @@ ProfilID int null
 , CreationDate datetime null
 , ModifOptin bit null 
 , ModifProfil bit null
+, optin_news_them_psg tinyint null
 )
 
 set dateformat ymd
@@ -128,6 +132,7 @@ insert #T_Contacts_Prospects
 , source_recrutement
 , ModifOptin
 , ModifProfil
+,optin_news_them_psg
 )
 select 
 null as ProfilID
@@ -171,6 +176,7 @@ null as ProfilID
 , source_recrutement
 , ModifOptin
 , ModifProfil
+, cast(optin_news_them_psg as tinyint) as optin_news_them_psg
 from import.Prospects_Cumul
 where FichierTS=@FichierTS
 and LigneStatut=0
@@ -673,6 +679,64 @@ left outer join brut.ConsentementsEmail d on t.ProfilID=d.ProfilID and c.Contenu
 where t.date_resiliation_nl_thematique is not null and t.date_resiliation_nl_thematique>coalesce(t.date_souscr_nl_thematique,N'1900-01-01')
 and t.ProfilID is not null and d.ProfilID is null
 and t.ModifOptin=1
+
+--optin_news_them_psg
+
+DECLARE @optin_news_them_psg_date DATETIME = CAST(
+           SUBSTRING(@FichierTS ,LEN(@FichierTS) -7 ,4) + SUBSTRING(@FichierTS ,LEN(@FichierTS) -9 ,2) + 
+           SUBSTRING(@FichierTS ,LEN(@FichierTS) -11 ,2) AS DATETIME
+       ) 
+
+UPDATE ce
+SET    ce.Valeur = -1
+      ,ConsentementDate = @optin_news_them_psg_date
+FROM   #T_Contacts_Prospects t
+       INNER JOIN ref.Contenus c
+            ON  c.NomContenu = N'optin_news_them_psg'
+       INNER JOIN brut.ConsentementsEmail ce
+            ON  t.ProfilID = ce.ProfilID
+                AND c.ContenuID = ce.ContenuID
+WHERE  t.ProfilID IS NOT NULL
+       AND t.optin_news_them_psg = 2
+
+UPDATE ce
+SET    ce.Valeur = 1
+      ,ConsentementDate = @optin_news_them_psg_date
+FROM   #T_Contacts_Prospects t
+       INNER JOIN ref.Contenus c
+            ON  c.NomContenu = N'optin_news_them_psg'
+       INNER JOIN brut.ConsentementsEmail ce
+            ON  t.ProfilID = ce.ProfilID
+                AND c.ContenuID = ce.ContenuID
+WHERE  t.ProfilID IS NOT NULL
+       AND t.optin_news_them_psg = 1
+
+INSERT brut.ConsentementsEmail
+  (
+    ProfilID
+   ,MasterID
+   ,Email
+   ,ContenuID
+   ,Valeur
+   ,ConsentementDate
+  )
+SELECT t.ProfilID
+      ,t.ProfilID
+      ,LEFT(t.email_courant ,128)
+      ,c.ContenuID --,58
+      ,1                          AS Valeur
+      ,@optin_news_them_psg_date  AS ConsentementDate
+FROM   #T_Contacts_Prospects t
+       INNER JOIN ref.Contenus c
+            ON  c.NomContenu = N'optin_news_them_psg'
+       LEFT JOIN brut.ConsentementsEmail ce
+            ON  t.ProfilID = ce.ProfilID
+                AND c.ContenuID = ce.ContenuID
+WHERE  t.ProfilID IS NOT NULL
+AND  t.optin_news_them_psg = 1
+       AND ce.ProfilID IS            NULL
+
+--end of optin_news_them_psg
 
 insert brut.ConsentementsEmail
 (

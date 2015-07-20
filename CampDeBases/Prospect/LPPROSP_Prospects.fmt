@@ -52,7 +52,7 @@
 50 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 51 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 52 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
-53 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
+53 SQLNCHAR 0 6 "|\0" 43 optin_news_them_psg French_CI_AS
 54 SQLNCHAR 0 6 "|\0" 37 optin_news_them_loisirs French_CI_AS
 55 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 56 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
