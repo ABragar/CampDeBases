@@ -1,4 +1,12 @@
 ﻿USE [AmauryVUC]
+<<<<<<< Updated upstream
+=======
+GO
+/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 29.04.2015 17:39:55 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+>>>>>>> Stashed changes
 GO
 /****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 07/10/2015 13:52:27 ******/
 
@@ -25,6 +33,7 @@ AS
 
 BEGIN
 	SET NOCOUNT ON
+	SET DATEFORMAT dmy
 	DECLARE @ContenuID INT
 	DECLARE @MarqueID INT
 	DECLARE @CusCompteTableName NVARCHAR(255)
@@ -79,8 +88,6 @@ BEGIN
 	    CREATE INDEX idx02_ActionID ON #CusCompteTmp(ActionID)
 	END
 	
-	
-	
 	CREATE TABLE #T_Trouver_ProfilID
 	(
 		ProfilID                   INT NULL
@@ -93,8 +100,6 @@ BEGIN
 	   ,LastUpdated                DATETIME NULL
 	   ,ImportID                   INT NULL
 	)
-	
-	SET DATEFORMAT dmy
 	
 	INSERT #T_Trouver_ProfilID
 	  (
@@ -116,7 +121,8 @@ BEGIN
 	FROM   import.PVL_Utilisateur a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
-	
+
+	       
 	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR
 	-- mais dont le sIdCompte est arrive depuis dans CusCompteEFR
 	
@@ -252,26 +258,15 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	WHERE  a.LigneStatut = 0
-	       AND ISDATE(a.LastUpdated) = 1
-	       AND ISDATE(a.CreateDate) = 1
-	
+	       --AND ISDATE(a.LastUpdated) = 1
+	       --AND ISDATE(a.CreateDate) = 1
+
 	IF @FilePrefix = N'LP%'--LP
 	BEGIN
 	    -- Trouver le ProfilID
 	    
 	    -- On retrouve le ProfilID dans brut.Contacts en passant par import.SSO_Cumul
 	    -- ainsi on retrouve la plupart des ProfilID
-	    
-	    -- find by SorceID = 10
-	    UPDATE a
-	    SET    ProfilID = c.ProfilID
-	    FROM   #T_Trouver_ProfilID a
-	           INNER JOIN import.SSO_Cumul b
-	                ON  a.EmailAddress = b.email_courant
-	           INNER JOIN brut.Contacts c
-	                ON  b.email_origine = c.OriginalID
-	                    AND c.SourceID = 10  
-	    
 	    UPDATE a
 	    SET    ProfilID = c.ProfilID
 	    FROM   #T_Trouver_ProfilID a
@@ -345,14 +340,6 @@ BEGIN
 	                ON  a.ClientUserId = r1.sIdCompte
 	    WHERE  r1.N1 = 1
 	    
-	    -- find by SorceID = 10
-	    UPDATE a
-	    SET    ProfilID = c.ProfilID
-	    FROM   #T_Trouver_ProfilID a
-	           INNER JOIN brut.Contacts c
-	                ON  a.ClientUserId = c.OriginalID
-	                    AND c.SourceID = 10
-	    
 	    UPDATE a
 	    SET    ProfilID = b.ProfilID
 	    FROM   #T_Trouver_ProfilID a
@@ -361,10 +348,26 @@ BEGIN
 	                    AND b.SourceID = 1
 	END
 	
+	-- find by SorceID = 10
+	UPDATE a
+	SET    ProfilID = c.ProfilID
+	FROM   #T_Trouver_ProfilID a
+	       INNER JOIN brut.Contacts c
+	            ON  a.ClientUserId = c.OriginalID
+	                AND c.SourceID = 10
+	                AND a.ProfilID IS NULL
+	
+       
+	
 	-- If not found profileId with sourceID = 10 then create it
 	DECLARE @SourceID INT = 10
 	IF OBJECT_ID('tempdb..#T_Contacts') IS NOT NULL
 	    DROP TABLE #T_Contacts
+	
+	DECLARE @rejeteCode BIGINT = CASE 
+	                                  WHEN @FilePrefix = N'LP%' THEN POWER(CAST(2 AS BIGINT) ,2) --LP
+	                                  ELSE POWER(CAST(2 AS BIGINT) ,42) --EQ,FF
+	                             END
 	
 	CREATE TABLE #T_Contacts
 	(
@@ -380,62 +383,141 @@ BEGIN
 	   ,CreationDate         DATETIME
 	   ,ModificationDate     DATETIME
 	   ,FichierSource        NVARCHAR(255)
+	   ,ImportID             NVARCHAR(255)
+	    --Domiciliations
+	   ,ComplementNom        NVARCHAR(80)
+	   ,Adr1                 NVARCHAR(80)
+	   ,Adr2                 NVARCHAR(80)
+	   ,Adr3                 NVARCHAR(80)
+	   ,Adr4                 NVARCHAR(80)
+	   ,CodePostal           NVARCHAR(32)
+	   ,Ville                NVARCHAR(80)
+	   ,Region               NVARCHAR(80)
+	   ,Pays                 NVARCHAR(80)
+	    --E-Mails
+	   ,email                NVARCHAR(128)
+	    --telephones
+	   ,TelFixe              NVARCHAR(20)
+	   ,TelMobile            NVARCHAR(20)
 	)
 	
 	INSERT #T_Contacts
-	SELECT NULL                        AS ProfilID
-	      ,pu.ImportID
-	      ,etl.TRIM(pu.ClientUserId)   AS OriginalID
-	      ,@SourceID                   AS SourceID
-	      ,etl.Trim(pu.Title)          AS Civilite --0,1,2,3 Mr   ???
-	      ,etl.Trim(Surname)           AS Prenom
-	      ,etl.Trim(FirstName)         AS Nom
-	      ,CASE pu.Sex
-	            WHEN N'M' THEN 0
-	            WHEN N'F' THEN 1
-	            ELSE NULL
-	       END                         AS Genre -- U = Unknown?
-	      ,CAST(pu.DateOfBirth AS DATETIME) AS NaissanceDate
+	SELECT NULL                       AS ProfilID
+	      ,pu.ClientUserId
+	      ,etl.TRIM(pu.ClientUserId)  AS OriginalID
+	      ,@SourceID                  AS SourceID
+	      ,c.CodeValN                 AS Civilite
+	      ,Prenom = CASE etl.Trim(FirstName)
+	                     WHEN N'-' THEN NULL
+	                     ELSE etl.Trim(FirstName)
+	                END
+	      ,Nom = CASE etl.Trim(Surname)
+	                  WHEN N'-' THEN NULL
+	                  ELSE etl.Trim(Surname)
+	             END
+	      ,Genre = CASE 
+	                    WHEN pu.Title IN (N'2' ,N'3') /* Madame, Mademoiselle */ THEN 
+	                         1
+	                    WHEN pu.Title = N'1' /* Monsieur */ THEN 0
+	                    ELSE NULL
+	               END
+	      ,CASE 
+	            WHEN CAST(pu.DateOfBirth AS DATE) = CAST(N'01/01/1970' AS DATE) THEN 
+	                 NULL
+	            ELSE CAST(pu.DateOfBirth AS DATETIME)
+	       END AS NaissanceDate
 	      ,COALESCE(CAST(pu.CreateDate AS DATETIME) ,GETDATE()) AS CreationDate
 	      ,COALESCE(CAST(pu.LastUpdated AS DATETIME) ,GETDATE()) AS 
 	       ModificationDate
-	      ,@FichierTS                  AS FichierSource
-	FROM   import.PVL_Utilisateur      AS pu
-	       INNER JOIN #T_Trouver_ProfilID t
-	            ON  t.ImportID = pu.ImportID
-	                AND t.ProfilID IS     NULL 
+	      ,pu.FichierTS AS FichierSource
+	      ,pu.ImportID
+	       --Domiciliations
+	      ,ComplementNom = LEFT(HomeHouseName ,80)
+	      , NULL
+	      ,Adr2 = CASE 
+	                   WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 0 AND pu.HomeCountry 
+	                        = 'France' THEN LEFT(etl.Trim(pu.HomeFlatNumber) ,80)
+	              END
+	      ,Adr3 = LEFT(
+	           CASE 
+	                WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 1 THEN etl.trim(pu.HomeFlatNumber)
+	                ELSE ''
+	           END + ' ' + etl.trim(pu.HomeStreet)
+	          ,80
+	       )
+	      ,Adr4 = LEFT(
+	           CASE 
+	                WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 0
+	           AND pu.HomeCountry <> 'France' THEN LEFT(etl.Trim(pu.HomeFlatNumber) ,80) 
+	               ELSE '' END + ' ' + etl.trim(pu.HomeDistrict)
+	          ,80
+	       )
+	      ,CodePostal = LEFT(pu.HomePostCode ,32)
+	      ,Ville = LEFT(pu.HomeTownCity ,80)
+	      ,Region = LEFT(pu.HomeCounty ,80)
+	      ,Pays = case when etl.TRIM(pu.HomeCountry)=N'N/A' THEN NULL ELSE LEFT(pu.HomeCountry,80) END
+	       --e-mail
+	      ,email = LEFT(pu.EmailAddress ,128)
+	       --telephones
+	      ,TelFixe = etl.trim(LEFT(pu.HomePhoneNumber ,20))
+	      ,TelMobile = etl.trim(LEFT(pu.MobilePhoneNumber ,20))
+	FROM   import.PVL_Utilisateur AS pu
+	       LEFT JOIN ref.Misc c
+	            ON  c.CodeValN = CASE 
+	                                  WHEN ISNUMERIC(pu.Title) = 1 THEN CAST(pu.Title AS INT)
+	                                  ELSE NULL
+	                             END
+	                AND c.TypeRef = N'CIVILITE'
+	WHERE  pu.FichierTS <> @FichierTS --exclude current day
+	       AND pu.FichierTS LIKE @FilePrefix --	File prefix
+	       AND pu.LigneStatut = 1
+	       AND pu.RejetCode = @rejeteCode
+	
+	UPDATE pu
+	SET    pu.RejetCode = 0
+	      ,pu.LigneStatut = 99
+	FROM   import.PVL_Utilisateur AS pu
+	       INNER JOIN #T_Contacts c
+	            ON  pu.ImportID = c.ImportID 
 	
 	CREATE INDEX idx01_OriginalID ON #T_Contacts(OriginalID)
 	
-	IF OBJECT_ID('tempdb..#ExistingContacts') IS NOT NULL
-	    DROP TABLE #ExistingContacts
+	UPDATE tc
+	SET    tc.ProFilID = bc.ProfilID
+	FROM   #T_Contacts tc
+	       INNER JOIN brut.Contacts bc
+	            ON  tc.OriginalID = bc.OriginalID
+	WHERE  bc.SourceID = @SourceID
 	
-	CREATE TABLE #ExistingContacts
-	(
-		ProfilID       INT NULL
-	   ,OriginalID     NVARCHAR(255) NULL
-	)
+	--IF OBJECT_ID('tempdb..#ExistingContacts') IS NOT NULL
+	--    DROP TABLE #ExistingContacts
 	
-	-- fill existing profileId by sourceId
-	INSERT #ExistingContacts
-	  (
-	    ProfilID
-	   ,OriginalID
-	  )
-	SELECT b.ProfilID
-	      ,b.OriginalID
-	FROM   brut.Contacts b
-	       INNER JOIN #T_Contacts a
-	            ON  a.OriginalID = b.OriginalID
-	WHERE  b.SourceID = @SourceID
+	--CREATE TABLE #ExistingContacts
+	--(
+	--	ProfilID       INT NULL
+	--   ,OriginalID     NVARCHAR(255) NULL
+	--)
 	
-	CREATE INDEX idx01_OriginalID ON #ExistingContacts(OriginalID)
+	---- fill existing profileId by sourceId
+	--INSERT #ExistingContacts
+	--  (
+	--    ProfilID
+	--   ,OriginalID
+	--  )
+	--SELECT b.ProfilID
+	--      ,b.OriginalID
+	--FROM   brut.Contacts b
+	--       INNER JOIN #T_Contacts a
+	--            ON  a.OriginalID = b.OriginalID
+	--WHERE  b.SourceID = @SourceID
 	
-	UPDATE a
-	SET    ProfilID = b.ProfilID
-	FROM   #T_Contacts a
-	       INNER JOIN #ExistingContacts b
-	            ON  a.OriginalID = b.OriginalID
+	--CREATE INDEX idx01_OriginalID ON #ExistingContacts(OriginalID)
+	
+	--UPDATE a
+	--SET    ProfilID = b.ProfilID
+	--FROM   #T_Contacts a
+	--       INNER JOIN #ExistingContacts b
+	--            ON  a.OriginalID = b.OriginalID
 	
 	
 	-- insert new contacts
@@ -490,54 +572,40 @@ BEGIN
 	WHERE  c.SourceID = @SourceID
 	       AND t.ProfilID IS NULL 
 	-- end brut.contacts
+	
 	-- update ProfilID for brut.ConsentementsEmail
+	INSERT #T_Trouver_ProfilID
+	  (
+	    EmailAddress
+	   ,ClientUserId
+	   ,AccountStatus
+	   ,NoMarketingInformation
+	   ,CreateDate
+	   ,LastUpdated
+	   ,ImportID
+	  )
+	SELECT a.EmailAddress
+	      ,a.ClientUserId
+	      ,a.AccountStatus
+	      ,a.NoMarketingInformation
+	      ,CAST(a.CreateDate AS DATETIME)
+	      ,CAST(a.LastUpdated AS DATETIME)
+	      ,a.ImportID
+	FROM   import.PVL_Utilisateur a
+	       INNER JOIN #T_Contacts c
+	            ON  a.ImportID = c.ImportID
+	       LEFT JOIN #T_Trouver_ProfilID AS x
+	            ON  x.ClientUserId = c.OriginalID
+	WHERE  x.ClientUserId IS NULL
+	
 	UPDATE x
 	SET    x.ProfilID = tc.ProfilID
 	FROM   #T_Trouver_ProfilID AS x
 	       INNER JOIN #T_Contacts tc
-	            ON  x.ClientUserId = tc.Origine
+	            ON  x.ClientUserId = tc.OriginalID
 	WHERE  x.ProfilID IS NULL
 	
-	/* update Domiciliations*/
-	ALTER TABLE #T_Contacts ADD 
-	ComplementNom NVARCHAR(80)
-	,Adr1 NVARCHAR(80)
-	,Adr2 NVARCHAR(80)
-	,Adr3 NVARCHAR(80)
-	,Adr4 NVARCHAR(80)
-	,CodePostal NVARCHAR(32)
-	,Ville NVARCHAR(80)
-	,Region NVARCHAR(80)
-	,Pays NVARCHAR(80)
-	
-	UPDATE c
-	SET    c.ComplementNom = LEFT(HomeHouseName ,80)
-	      ,c.Adr2 = CASE 
-	                     WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 0 AND pu.HomeCountry 
-	                          = 'France' THEN LEFT(etl.Trim(pu.HomeFlatNumber) ,80)
-	                END
-	      ,c.Adr3 = LEFT(
-	           CASE 
-	                WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 1 THEN etl.trim(pu.HomeFlatNumber)
-	                ELSE ''
-	           END + ' ' + etl.trim(pu.HomeStreet)
-	          ,80
-	       )
-	      ,c.Adr4 = LEFT(
-	           CASE 
-	                WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 0
-	           AND pu.HomeCountry <> 'France' THEN LEFT(etl.Trim(pu.HomeFlatNumber) ,80) 
-	               ELSE '' END + ' ' + etl.trim(pu.HomeDistrict)
-	          ,80
-	       )
-	      ,c.CodePostal = LEFT(pu.HomePostCode ,32)
-	      ,c.Ville = LEFT(pu.HomeTownCity ,80)
-	      ,c.Region = LEFT(pu.HomeCounty ,80)
-	      ,c.Pays = LEFT(pu.HomeCountry ,80)
-	FROM   #T_Contacts c
-	       INNER JOIN import.PVL_Utilisateur AS pu
-	            ON  pu.ImportID = c.OriginalID
-	
+	--	/* update Domiciliations*/
 	INSERT brut.Domiciliations
 	  (
 	    ProfilID
@@ -597,7 +665,12 @@ BEGIN
 	           + CAST(COALESCE(t.Adr4 ,N'')AS NVARCHAR(255)) 
 	           + CAST(COALESCE(t.CodePostal ,N'')AS NVARCHAR(255)) 
 	           + CAST(COALESCE(t.Ville ,N'') AS NVARCHAR(255))
+<<<<<<< Updated upstream
 	           + CAST(COALESCE(t.Region ,N'') AS NVARCHAR(255))	           + CAST(COALESCE(t.Pays ,N'') AS NVARCHAR(255))
+=======
+	           + CAST(COALESCE(t.Region ,N'') AS NVARCHAR(255))
+	           + CAST(COALESCE(t.Pays ,N'') AS NVARCHAR(255))
+>>>>>>> Stashed changes
 	       ) <> N''
 	       AND t.ProfilID IS NOT NULL
 	       AND d.ProfilID IS NULL
@@ -605,16 +678,6 @@ BEGIN
 	
 	
 	/* update emails*/
-	
-	ALTER TABLE #T_Contacts ADD 
-	email NVARCHAR(128)
-	
-	UPDATE c
-	SET    c.email = LEFT(pu.EmailAddress ,128)
-	FROM   #T_Contacts c
-	       INNER JOIN import.PVL_Utilisateur AS pu
-	            ON  pu.ImportId = c.OriginalID
-	
 	INSERT brut.Emails
 	  (
 	    Email
@@ -637,19 +700,6 @@ BEGIN
 	/* end update emails*/
 	
 	/* update telephones*/
-	ALTER TABLE #T_Contacts ADD 
-	
-	TelFixe NVARCHAR(20),
-	TelMobile NVARCHAR(20)
-	
-	
-	UPDATE c
-	SET    c.TelFixe = etl.trim(LEFT(pu.HomePhoneNumber ,20))
-	      ,c.TelMobile = etl.trim(LEFT(pu.MobilePhoneNumber ,20)) --
-	FROM   #T_Contacts c
-	       INNER JOIN import.PVL_Utilisateur AS pu
-	            ON  pu.ImportID = c.OriginalID
-	
 	IF OBJECT_ID('tempdb..#telephones') IS NOT NULL
 	    DROP TABLE #telephones
 	
@@ -737,7 +787,6 @@ BEGIN
 	   ,Valeur               INT NULL
 	   ,ConsentementDate     DATETIME NULL
 	)
-	
 	INSERT #T_ConsEmail
 	  (
 	    ProfilID
