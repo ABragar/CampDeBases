@@ -3108,11 +3108,11 @@ group by MasterID, MarqueID
 
 -- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 -- Enlever ceux qui ont un opt-in marque ou partenaire
 
@@ -3165,13 +3165,13 @@ insert #T_Abos_Agreg (N,MasterID,MarqueID)
 select COUNT(*) as N, MasterID, MarqueID from #T_Abos a
 group by MasterID, MarqueID
 
--- Enlever ceux qui ont effectué un achat ou contracté un abonnement
+---- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 -- Enlever ceux qui ont un opt-in marque ou partenaire
 
@@ -3224,11 +3224,11 @@ group by MasterID, MarqueID
 
 -- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 delete a
 from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
