@@ -271,7 +271,7 @@ BEGIN
 	                ON  b.email_origine = c.OriginalID
 	                    AND c.SourceID = 2 
 	    
-	    -- Pour le reste, on passe par brut.Emails de differentes sources
+	    -- Pour le reste, on passe par brut.Emails de SourceID=2
 	    IF OBJECT_ID(N'tempdb..#T_BrutSourceID') IS NOT NULL
 	        DROP TABLE #T_BrutSourceID
 	    
@@ -343,7 +343,7 @@ BEGIN
 	                    AND b.SourceID = 1
 	END
 	
-	-- find by SorceID = 10
+	-- find by SourceID = 10
 	UPDATE a
 	SET    ProfilID = c.ProfilID
 	FROM   #T_Trouver_ProfilID a
@@ -354,7 +354,10 @@ BEGIN
 	
        
 	
-	-- If not found profileId with sourceID = 10 then create it
+	-- Create with SourceID=10 those contacts which had not been found neither with SourceID=1 or 2, nor with 10.
+	-- We take all the files with the current prefix, excepting that of today, 
+	-- as we expect account data (Neolane or SSO) arrive by tomorrow.
+	
 	DECLARE @SourceID INT = 10
 	IF OBJECT_ID('tempdb..#T_Contacts') IS NOT NULL
 	    DROP TABLE #T_Contacts
@@ -428,7 +431,7 @@ BEGIN
 	      ,pu.ImportID
 	       --Domiciliations
 	      ,ComplementNom = LEFT(HomeHouseName ,80)
-	      , NULL
+	      , Adr1 = NULL
 	      ,Adr2 = CASE 
 	                   WHEN ISNUMERIC(LEFT(pu.HomeFlatNumber ,1)) = 0 AND pu.HomeCountry 
 	                        = 'France' THEN LEFT(etl.Trim(pu.HomeFlatNumber) ,80)
@@ -491,7 +494,7 @@ BEGIN
 	           GROUP BY
 	                  c.FichierSource
 	       ) x
-	       INNER JOIN #T_FTS f
+	       LEFT JOIN #T_FTS f
 	            ON  x.FichierSource = f.FichierTS
 	WHERE  f.FichierTS IS      NULL 
 		             	             
@@ -704,7 +707,7 @@ BEGIN
 	      ,t.CreationDate
 	      ,t.ModificationDate
 	FROM   #T_Contacts t
-	       LEFT OUTER JOIN [brut].[Emails] em
+	       LEFT JOIN [brut].[Emails] em
 	            ON  t.ProfilID = em.ProfilID
 	                AND t.Email = em.Email
 	WHERE  em.ProfilID IS NULL
