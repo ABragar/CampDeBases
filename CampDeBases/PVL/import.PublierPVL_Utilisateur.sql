@@ -473,7 +473,28 @@ BEGIN
 	      ,pu.LigneStatut = 99
 	FROM   import.PVL_Utilisateur AS pu
 	       INNER JOIN #T_Contacts c
-	            ON  pu.ImportID = c.ImportID 
+	            ON  pu.ImportID = c.ImportID
+	            
+	DELETE pu
+	FROM   rejet.PVL_Utilisateur pu
+	       INNER JOIN #T_Contacts c
+	            ON  pu.ImportID = c.ImportID
+
+	INSERT INTO #T_FTS
+	  (
+	    FichierTS
+	  )
+	SELECT x.FichierSource  AS FichierTS
+	FROM   (
+	           SELECT c.FichierSource
+	           FROM   #T_Contacts c
+	           GROUP BY
+	                  c.FichierSource
+	       ) x
+	       INNER JOIN #T_FTS f
+	            ON  x.FichierSource = f.FichierTS
+	WHERE  f.FichierTS IS      NULL 
+		             	             
 	
 	CREATE INDEX idx01_OriginalID ON #T_Contacts(OriginalID)
 	
