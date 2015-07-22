@@ -159,6 +159,8 @@ BEGIN
 	           INNER JOIN import.SSO_Cumul b
 	                ON  a.EmailAddress = b.email_courant
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,2) = POWER(CAST(2 AS BIGINT) ,2)
+	         and a.FichierTS like @FilePrefix
+			 and a.FichierTS<>@FichierTS
 	    
 	    INSERT #T_Recup
 	      (
@@ -173,7 +175,9 @@ BEGIN
 	           INNER JOIN brut.Emails b
 	                ON  a.EmailAddress = b.Email
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,2) = POWER(CAST(2 AS BIGINT) ,2)
-	    
+	         and a.FichierTS like @FilePrefix
+			and a.FichierTS<>@FichierTS
+			
 	    UPDATE a
 	    SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,2)
 	    FROM   #T_Recup a
@@ -194,7 +198,9 @@ BEGIN
 	           INNER JOIN #CusCompteTmp b
 	                ON  a.ClientUserId = b.sIdCompte
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,42) = POWER(CAST(2 AS BIGINT) ,42)
-	    
+	         and a.FichierTS like @FilePrefix
+			 and a.FichierTS<>@FichierTS
+			 
 	    UPDATE a
 	    SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,42)
 	    FROM   #T_Recup a
@@ -258,8 +264,6 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	WHERE  a.LigneStatut = 0
-	       --AND ISDATE(a.LastUpdated) = 1
-	       --AND ISDATE(a.CreateDate) = 1
 
 	IF @FilePrefix = N'LP%'--LP
 	BEGIN
