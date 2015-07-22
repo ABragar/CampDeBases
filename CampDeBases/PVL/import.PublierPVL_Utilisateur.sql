@@ -25,7 +25,6 @@ AS
 -- Modification date: 15/07/2015
 -- Modifications : public contacts with SourceID = 10
 -- =============================================
-
 BEGIN
 	SET NOCOUNT ON
 	SET DATEFORMAT dmy
@@ -34,6 +33,7 @@ BEGIN
 	DECLARE @CusCompteTableName NVARCHAR(255)
 	DECLARE @FilePrefix NVARCHAR(255)
 	DECLARE @sqlCommand NVARCHAR(500)
+	DECLARE @PrefixContact NVARCHAR(3) = LEFT(@FichierTS,2)+N'-'
 	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
@@ -87,13 +87,14 @@ BEGIN
 	(
 		ProfilID                   INT NULL
 	   ,EmailAddress               NVARCHAR(255) NULL
-	   ,ClientUserId               NVARCHAR(16) NULL
+	   ,ClientUserId               NVARCHAR(255) NULL
 	   ,iRecipientId               NVARCHAR(16) NULL
 	   ,NoMarketingInformation     NVARCHAR(16) NULL
 	   ,AccountStatus              NVARCHAR(20) NULL
 	   ,CreateDate                 DATETIME NULL
 	   ,LastUpdated                DATETIME NULL
 	   ,ImportID                   INT NULL
+	   ,OriginalID               NVARCHAR(255) NULL
 	)
 	
 	INSERT #T_Trouver_ProfilID
@@ -105,6 +106,7 @@ BEGIN
 	   ,CreateDate
 	   ,LastUpdated
 	   ,ImportID
+	   ,OriginalID
 	  )
 	SELECT a.EmailAddress
 	      ,a.ClientUserId
@@ -113,6 +115,7 @@ BEGIN
 	      ,CAST(a.CreateDate AS DATETIME)
 	      ,CAST(a.LastUpdated AS DATETIME)
 	      ,a.ImportID
+	      ,OriginalId = @PrefixContact + a.ClientUserId
 	FROM   import.PVL_Utilisateur a
 	WHERE  a.FichierTS = @FichierTS
 	       AND a.LigneStatut = 0
@@ -241,6 +244,7 @@ BEGIN
 	   ,CreateDate
 	   ,LastUpdated
 	   ,ImportID
+	   ,OriginalID
 	  )
 	SELECT a.EmailAddress
 	      ,a.ClientUserId
@@ -249,6 +253,7 @@ BEGIN
 	      ,CAST(a.CreateDate AS DATETIME)
 	      ,CAST(a.LastUpdated AS DATETIME)
 	      ,a.ImportID
+	      ,OriginalId = @PrefixContact + a.ClientUserId
 	FROM   import.PVL_Utilisateur a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
@@ -348,7 +353,7 @@ BEGIN
 	SET    ProfilID = c.ProfilID
 	FROM   #T_Trouver_ProfilID a
 	       INNER JOIN brut.Contacts c
-	            ON  a.ClientUserId = c.OriginalID
+	            ON  a.OriginalID = c.OriginalID
 	                AND c.SourceID = 10
 	                AND a.ProfilID IS NULL
 	
@@ -401,7 +406,7 @@ BEGIN
 	
 	INSERT #T_Contacts
 	SELECT NULL                       AS ProfilID
-	      ,pu.ClientUserId
+	      ,OriginalID = @PrefixContact+pu.ClientUserId
 	      ,etl.TRIM(pu.ClientUserId)  AS OriginalID
 	      ,@SourceID                  AS SourceID
 	      ,c.CodeValN                 AS Civilite
@@ -602,6 +607,7 @@ BEGIN
 	   ,CreateDate
 	   ,LastUpdated
 	   ,ImportID
+	   ,OriginalID
 	  )
 	SELECT a.EmailAddress
 	      ,a.ClientUserId
@@ -610,18 +616,19 @@ BEGIN
 	      ,CAST(a.CreateDate AS DATETIME)
 	      ,CAST(a.LastUpdated AS DATETIME)
 	      ,a.ImportID
+	      ,c.OriginalID  
 	FROM   import.PVL_Utilisateur a
 	       INNER JOIN #T_Contacts c
 	            ON  a.ImportID = c.ImportID
 	       LEFT JOIN #T_Trouver_ProfilID AS x
-	            ON  x.ClientUserId = c.OriginalID
+	            ON  x.OriginalID = c.OriginalID
 	WHERE  x.ClientUserId IS NULL
 	
 	UPDATE x
 	SET    x.ProfilID = tc.ProfilID
 	FROM   #T_Trouver_ProfilID AS x
 	       INNER JOIN #T_Contacts tc
-	            ON  x.ClientUserId = tc.OriginalID
+	            ON  x.OriginalID = tc.OriginalID
 	WHERE  x.ProfilID IS NULL
 	
 	--	/* update Domiciliations*/
@@ -887,54 +894,54 @@ BEGIN
 	DECLARE @FTS NVARCHAR(255)
 	DECLARE @S NVARCHAR(1000)
 	
-	DECLARE c_fts CURSOR  
-	FOR
-	    SELECT FichierTS
-	    FROM   #T_FTS
+	--DECLARE c_fts CURSOR  
+	--FOR
+	--    SELECT FichierTS
+	--    FROM   #T_FTS
 	
-	OPEN c_fts
+	--OPEN c_fts
 	
-	FETCH c_fts INTO @FTS
+	--FETCH c_fts INTO @FTS
 	
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-	    SET @S = 
-	        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Utilisateur'', N'''
-	        + @FTS + N''' ; '
+	--WHILE @@FETCH_STATUS = 0
+	--BEGIN
+	--    SET @S = 
+	--        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Utilisateur'', N'''
+	--        + @FTS + N''' ; '
 	    
-	    IF (
-	           EXISTS(
-	               SELECT NULL
-	               FROM   sys.tables t
-	                      INNER JOIN sys.[schemas] s
-	                           ON  s.SCHEMA_ID = t.SCHEMA_ID
-	               WHERE  s.name = 'import'
-	                      AND t.Name = 'PVL_Utilisateur'
-	           )
-	       )
-	        EXECUTE (@S) 
+	--    IF (
+	--           EXISTS(
+	--               SELECT NULL
+	--               FROM   sys.tables t
+	--                      INNER JOIN sys.[schemas] s
+	--                           ON  s.SCHEMA_ID = t.SCHEMA_ID
+	--               WHERE  s.name = 'import'
+	--                      AND t.Name = 'PVL_Utilisateur'
+	--           )
+	--       )
+	--        EXECUTE (@S) 
 	    
-	    FETCH c_fts INTO @FTS
-	END
+	--    FETCH c_fts INTO @FTS
+	--END
 	
-	CLOSE c_fts
-	DEALLOCATE c_fts
+	--CLOSE c_fts
+	--DEALLOCATE c_fts
 	
 	
-	/********** AUTOCALCULATE REJECTSTATS **********/
-	IF (
-	       EXISTS(
-	           SELECT NULL
-	           FROM   sys.tables t
-	                  INNER JOIN sys.[schemas] s
-	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
-	           WHERE  s.name = 'import'
-	                  AND t.Name = 'PVL_Utilisateur'
-	       )
-	   )
-	    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
-	            '95940C81-C7A7-4BD9-A523-445A343A9605'
-	           ,'PVL_Utilisateur'
-	           ,@FichierTS
+	--/********** AUTOCALCULATE REJECTSTATS **********/
+	--IF (
+	--       EXISTS(
+	--           SELECT NULL
+	--           FROM   sys.tables t
+	--                  INNER JOIN sys.[schemas] s
+	--                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+	--           WHERE  s.name = 'import'
+	--                  AND t.Name = 'PVL_Utilisateur'
+	--       )
+	--   )
+	--    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
+	--            '95940C81-C7A7-4BD9-A523-445A343A9605'
+	--           ,'PVL_Utilisateur'
+	--           ,@FichierTS
 END
     
