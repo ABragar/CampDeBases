@@ -1,15 +1,10 @@
 ﻿USE [AmauryVUC]
-<<<<<<< Updated upstream
-=======
 GO
 /****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 29.04.2015 17:39:55 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
->>>>>>> Stashed changes
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 07/10/2015 13:52:27 ******/
-
 ALTER PROC [import].[PublierPVL_Utilisateur] @FichierTS NVARCHAR(255)
 AS
 -- =============================================
@@ -665,12 +660,8 @@ BEGIN
 	           + CAST(COALESCE(t.Adr4 ,N'')AS NVARCHAR(255)) 
 	           + CAST(COALESCE(t.CodePostal ,N'')AS NVARCHAR(255)) 
 	           + CAST(COALESCE(t.Ville ,N'') AS NVARCHAR(255))
-<<<<<<< Updated upstream
-	           + CAST(COALESCE(t.Region ,N'') AS NVARCHAR(255))	           + CAST(COALESCE(t.Pays ,N'') AS NVARCHAR(255))
-=======
 	           + CAST(COALESCE(t.Region ,N'') AS NVARCHAR(255))
 	           + CAST(COALESCE(t.Pays ,N'') AS NVARCHAR(255))
->>>>>>> Stashed changes
 	       ) <> N''
 	       AND t.ProfilID IS NOT NULL
 	       AND d.ProfilID IS NULL
