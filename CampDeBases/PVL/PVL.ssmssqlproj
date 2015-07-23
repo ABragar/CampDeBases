@@ -3,10 +3,10 @@
   <Items>
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
-        <ConnectionNode Name="(local)\FRENCH:PC\Bragar.A">
-          <Created>2015-04-17T09:56:04.7179609+03:00</Created>
+        <ConnectionNode Name="PC\MSSQLDEV:PC\Bragar.A">
+          <Created>2015-07-07T14:43:54.2164451+03:00</Created>
           <Type>SQL</Type>
-          <Server>(local)\FRENCH</Server>
+          <Server>PC\MSSQLDEV</Server>
           <UserName />
           <Authentication>Windows Authentication</Authentication>
           <InitialDB />
@@ -20,62 +20,62 @@
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
         <FileNode Name="1.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>1.sql</FullPath>
         </FileNode>
         <FileNode Name="2.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>2.sql</FullPath>
         </FileNode>
         <FileNode Name="deleteDoublesVelLEquipe.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>deleteDoublesVelLEquipe.sql</FullPath>
         </FileNode>
         <FileNode Name="DeleteNeolene_1.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>DeleteNeolene_1.sql</FullPath>
         </FileNode>
         <FileNode Name="DeleteNeolene_21.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>DeleteNeolene_21.sql</FullPath>
         </FileNode>
         <FileNode Name="DeleteNeolene_3.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>DeleteNeolene_3.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Abonnements.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Abonnements.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Abonnements_FF.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Abonnements_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Achats.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Achats.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Achats_FF.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Achats_FF.sql</FullPath>
         </FileNode>
@@ -92,38 +92,38 @@
           <FullPath>import.PublierPVL_CatalogueOffres.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_CatalogueOffres_FF.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_CatalogueOffres_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Utilisateur.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Utilisateur.sql</FullPath>
         </FileNode>
         <FileNode Name="import.PublierPVL_Utilisateur_FF.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>import.PublierPVL_Utilisateur_FF.sql</FullPath>
         </FileNode>
         <FileNode Name="ModifyHS_1.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>ModifyHS_1.sql</FullPath>
         </FileNode>
         <FileNode Name="ModifyHS_2.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>ModifyHS_2.sql</FullPath>
         </FileNode>
         <FileNode Name="ModifyPremium.sql">
-          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:(local)\FRENCH:True</AssociatedConnectionMoniker>
-          <AssociatedConnSrvName>(local)\FRENCH</AssociatedConnSrvName>
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
           <AssociatedConnUserName />
           <FullPath>ModifyPremium.sql</FullPath>
         </FileNode>

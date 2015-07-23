@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="LogImportedData">
+<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="DynamicReports">
   <Items>
     <LogicalFolder Name="Connections" Type="2" Sorted="true">
       <Items>
         <ConnectionNode Name="PC\MSSQLDEV:PC\Bragar.A">
-          <Created>2015-07-07T14:44:02.0324569+03:00</Created>
+          <Created>2015-07-07T14:39:10.8185654+03:00</Created>
           <Type>SQL</Type>
           <Server>PC\MSSQLDEV</Server>
           <UserName />
@@ -13,83 +13,89 @@
           <LoginTimeout>15</LoginTimeout>
           <ExecutionTimeout>0</ExecutionTimeout>
           <ConnectionProtocol>NotSpecified</ConnectionProtocol>
-          <ApplicationName />
+          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
         </ConnectionNode>
       </Items>
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
-        <FileNode Name="HelperCreateShemaTableImportDataLog.sql">
+        <FileNode Name="_notUse_report.RemplirMasterIDsMapping.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>HelperCreateShemaTableImportDataLog.sql</FullPath>
+          <FullPath>_notUse_report.RemplirMasterIDsMapping.sql</FullPath>
         </FileNode>
-        <FileNode Name="sp_SaveStatisticNoFichierTS.sql">
+        <FileNode Name="CreateAdditionalsObj.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>sp_SaveStatisticNoFichierTS.sql</FullPath>
+          <FullPath>CreateAdditionalsObj.sql</FullPath>
         </FileNode>
-        <FileNode Name="startScript.sql">
+        <FileNode Name="PrepareData.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>startScript.sql</FullPath>
+          <FullPath>PrepareData.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.MergeStatistic.sql">
+        <FileNode Name="rep_DureeDesSessions.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.MergeStatistic.sql</FullPath>
+          <FullPath>rep_DureeDesSessions.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.RefreshStatistic.sql">
+        <FileNode Name="rep_FrequenceDesSessions.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.RefreshStatistic.sql</FullPath>
+          <FullPath>rep_FrequenceDesSessions.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.SaveStatisticNoActionID.sql">
+        <FileNode Name="rep_ProfounderDesSessions.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.SaveStatisticNoActionID.sql</FullPath>
+          <FullPath>rep_ProfounderDesSessions.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.SaveStatisticSSO.sql">
+        <FileNode Name="rep_VisiteursAPotentiel.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.SaveStatisticSSO.sql</FullPath>
+          <FullPath>rep_VisiteursAPotentiel.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.SaveStatisticTimestamp.sql">
+        <FileNode Name="rep_VolumetrieDesSessions.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.SaveStatisticTimestamp.sql</FullPath>
+          <FullPath>rep_VolumetrieDesSessions.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.SaveStatisticWithActionID.sql">
+        <FileNode Name="report.GetPeriodsList.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.SaveStatisticWithActionID.sql</FullPath>
+          <FullPath>report.GetPeriodsList.sql</FullPath>
         </FileNode>
-        <FileNode Name="stats.selectProcessingMethod.sql">
+        <FileNode Name="report.RemplirStatsVolumetrieSessionsByPeriod.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>stats.selectProcessingMethod.sql</FullPath>
+          <FullPath>report.RemplirStatsVolumetrieSessionsByPeriod.sql</FullPath>
         </FileNode>
-        <FileNode Name="tableWithListColumns.sql">
+        <FileNode Name="report.RemplirStatsWebSessionsByPeriod.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>tableWithListColumns.sql</FullPath>
+          <FullPath>report.RemplirStatsWebSessionsByPeriod.sql</FullPath>
         </FileNode>
-        <FileNode Name="UpdateStatOld.sql">
+        <FileNode Name="SQLQuery3.sql">
           <AssociatedConnectionMoniker />
           <AssociatedConnSrvName />
           <AssociatedConnUserName />
-          <FullPath>UpdateStatOld.sql</FullPath>
+          <FullPath>SQLQuery3.sql</FullPath>
+        </FileNode>
+        <FileNode Name="SQLQuery4.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>SQLQuery4.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>

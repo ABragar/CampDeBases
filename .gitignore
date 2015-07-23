@@ -7,3 +7,9 @@ CampDeBases/Reports/Tableau de bord abos numériques - pour Andrei_translate.doc
 *.rar
 *.7z
 
+CampDeBases/Prospect/LeParisien_clients_prospects_14072015.hashed.csv
+<<<<<<< HEAD
+=======
+CampDeBases/PVL_Utilisateur.csv
+CampDeBases/SSO_Cumul.csv
+>>>>>>> pvl

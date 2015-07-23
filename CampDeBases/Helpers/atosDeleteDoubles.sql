@@ -4,12 +4,12 @@ BEGIN
 	DECLARE @FullTableName NVARCHAR(255) = N'export.' + @TableName
 	DECLARE @FildList NVARCHAR(255) = N''
 	DECLARE @Condition NVARCHAR(255) = N''
-	
+	DECLARE @TableNameTimestamp NVARCHAR(255) =  @FullTableName+N'_' +(SELECT Replace(REPLACE(Convert(NVARCHAR(19),GETDATE(),126),'-',''),':',''))
 	DECLARE TableColumnCursor CURSOR  
 	FOR
 	    SELECT Column_name
 	    FROM   INFORMATION_SCHEMA.[COLUMNS] AS c
-	    WHERE  c.TABLE_NAME = @TableName
+	    WHERE  c.TABLE_NAME = @TableName AND c.TABLE_SCHEMA = N'export'
 	
 	DECLARE @FieldName NVARCHAR(255)
 	
@@ -40,6 +40,13 @@ BEGIN
 	
 	SET @SqlCommand = 
 	    N'
+DECLARE @D DATETIME = GETDATE()
+SELECT Replace(REPLACE(Convert(NVARCHAR(19),@D,126),''-'',''''),'':'','''')	    
+	    
+SELECT * 
+INTO '+@TableNameTimestamp+'
+FROM '+@FullTableName+'
+
 SELECT DISTINCT * 
 INTO #distinct
 FROM '+@FullTableName+'

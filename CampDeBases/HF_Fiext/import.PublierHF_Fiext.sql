@@ -1,4 +1,4 @@
-USE AmauryVUC
+﻿USE AmauryVUC
 GO
 
 DROP PROCEDURE import.PublierHF_Fiext
@@ -19,6 +19,9 @@ AS
 	-- Modification date :	15/04/2015
 	-- Modified by :		Andrei BRAGAR
 	-- Modifications :
+	-- Modification date :	15/07/2015
+	-- Modified by :		Andrei BRAGAR
+	-- Modifications : brut.domicilations: Commune -> Ville, null->Region
 	-- =============================================
 
 BEGIN
@@ -231,6 +234,7 @@ BEGIN
 	   ,Adr4
 	   ,CodePostal
 	   ,Region
+	   ,Ville
 	   ,Pays
 	   ,StopCourrier
 	   ,StopCourrierDate
@@ -245,7 +249,8 @@ BEGIN
 	      ,t.Adresse3
 	      ,t.Adresse4
 	      ,t.CodePostal
-	      ,t.Commune
+	      ,NULL AS Region 
+	      ,t.Commune AS Ville
 	      ,t.Pays
 	      ,t.Stop_adresse_postal
 	      ,t.Date_stop_adresse_postal

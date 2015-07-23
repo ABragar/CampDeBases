@@ -11,7 +11,15 @@ Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Reports", "Reports\Reports.
 EndProject
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "LogImportedData", "LogImportedData\LogImportedData.ssmssqlproj", "{AD4F5D92-9A61-49DD-9A89-50C332E5E37D}"
 EndProject
+<<<<<<< HEAD
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "SudOuest", "SudOuest\SudOuest.ssmssqlproj", "{7D490609-9511-48C7-A036-99F7F0A058C7}"
+=======
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "SudOuest", "Sud-Ouest\SudOuest.ssmssqlproj", "{7D490609-9511-48C7-A036-99F7F0A058C7}"
+EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "DynamicReports", "DynamicReports\DynamicReports.ssmssqlproj", "{81827902-13F7-45A1-B4B7-421091E5B65A}"
+EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Typologies", "Typologies\Typologies.ssmssqlproj", "{7CF39CD3-9C7C-4227-8584-0DB8D80DE304}"
+>>>>>>> master
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +32,12 @@ Global
 		{9A25258C-86DA-483A-A603-939DE1A564B2}.Default|Default.ActiveCfg = Default
 		{AD4F5D92-9A61-49DD-9A89-50C332E5E37D}.Default|Default.ActiveCfg = Default
 		{7D490609-9511-48C7-A036-99F7F0A058C7}.Default|Default.ActiveCfg = Default
+<<<<<<< HEAD
+=======
+		{81827902-13F7-45A1-B4B7-421091E5B65A}.Default|Default.ActiveCfg = Default
+		{7CF39CD3-9C7C-4227-8584-0DB8D80DE304}.Default|Default.ActiveCfg = Default
+		{F78047AB-23AD-4CF1-8E8E-EA80D2F6E22D}.Default|Default.ActiveCfg = Default
+>>>>>>> master
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
