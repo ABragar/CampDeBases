@@ -1,7 +1,6 @@
-USE [AmauryVUC]
-
+ USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 04/29/2015 15:20:55 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 07/23/2015 13:27:44 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -804,6 +803,7 @@ BEGIN
 	   ,SalonId                  NVARCHAR(255) NULL
 	   ,ModePmtHorsLigne         NVARCHAR(255) NULL
 	   ,SubscriptionStatusID     INT NULL
+	   ,ReaboDate				DATETIME NULL
 	)
 	
 	INSERT #T_Abos_Agreg
@@ -1338,6 +1338,20 @@ BEGIN
 	                AND a.SouscriptionAboDate = b.SubscriptionCreated
 	WHERE  a.SubscriptionStatusID <> b.SubscriptionStatusID
 	
+	
+	
+	UPDATE a
+	SET    a.ReaboDate = b.SubscriptionLastUpdated
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN #T_AboDernierStatut b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.SouscriptionAboDate = b.SubscriptionCreated
+	       inner join ref.CatalogueAbonnements c on a.CatalogueAbosID=c.CatalogueAbosID
+	WHERE  a.SubscriptionStatusID in (2) /* En cours */ 
+	and a.SubscriptionStatusID=b.SubscriptionStatusID
+	and c.Recurrent=1
+	
 	-- Stocker les lignes dans etl.Abos_Agreg_PVL
 	-- en attendant que la procedure etl.InsertAbonnements_Agreg les deverse dans dbo.Abonnements
 	
@@ -1357,6 +1371,7 @@ BEGIN
 	   ,SouscriptionAboDate
 	   ,DebutAboDate
 	   ,FinAboDate
+	   ,ReaboDate
 	   ,MontantAbo
 	   ,ExAboSouscrNb
 	   ,Devise
@@ -1384,6 +1399,7 @@ BEGIN
 	      ,SouscriptionAboDate
 	      ,DebutAboDate
 	      ,FinAboDate
+	      ,ReaboDate
 	      ,MontantAbo
 	      ,ExAboSouscrNb
 	      ,Devise

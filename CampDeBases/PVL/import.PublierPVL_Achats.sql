@@ -1,10 +1,8 @@
-﻿USE [AmauryVUC]
+USE [AmauryVUC]
 GO
-
-/****** Object:  StoredProcedure [import].[PublierPVL_Achats]    Script Date: 20.04.2015 17:22:55 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_Achats]    Script Date: 07/23/2015 13:40:44 ******/
 SET ANSI_NULLS ON
 GO
-
 SET QUOTED_IDENTIFIER ON
 GO
 
@@ -17,7 +15,14 @@ AS
 -- Description:	Alimentation de la table dbo.AchatALActe
 -- a partir des fichiers DailyOrderReport de VEL : PVL_Achats
 -- Modification date: 20/04/2015
+-- Modified by :	Andrei BRAGAR
 -- Modifications : union EQ, LP, FF
+-- Modified by :	Anatoli VELITCHKO
+-- Modifications : Retour en arrière concernant la Provenance :
+--					On prend la Provenance telle quelle
+-- Modification date: 24/06/2015
+-- Modified by :	Anatoli VELITCHKO
+-- Modifications : Récupération de toutes les lignes LP devenues valides à cause du ClientUserID
 -- =============================================
 
 BEGIN
@@ -63,14 +68,14 @@ BEGIN
 	(
 		sIdCompte        NVARCHAR(255)
 	   ,iRecipientId     NVARCHAR(18)
-	   ,ActionID         INT
+	   ,ActionID         NVARCHAR(8)
 	   ,ImportID         INT
 	   ,LigneStatut      INT
 	   ,FichierTS        NVARCHAR(255)
 	)	
 	
 	SET @sqlCommand = 
-	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,CAST(cc.ActionID AS INT) as ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
+	    N'INSERT #CusCompteTmp SELECT cc.sIdCompte ,cc.iRecipientId ,cc.ActionID ,cc.ImportID ,cc.LigneStatut ,cc.FichierTS FROM '
 	    + @CusCompteTableName + ' AS cc where cc.LigneStatut<>1'	          
 	
 	EXEC (@sqlCommand)
@@ -98,7 +103,7 @@ BEGIN
 	   ,ProductDescription     NVARCHAR(255) NULL
 	   ,MethodePaiement        NVARCHAR(24) NULL
 	   ,CodePromo              NVARCHAR(24) NULL
---	   ,Provenance             NVARCHAR(255) NULL
+	   ,Provenance             NVARCHAR(255) NULL
 	   ,CommercialId           NVARCHAR(255) NULL
 	   ,SalonId                NVARCHAR(255) NULL
 	   ,ModePmtHorsLigne       NVARCHAR(255) NULL
@@ -127,7 +132,7 @@ BEGIN
 	   ,ProductDescription
 	   ,MethodePaiement
 	   ,CodePromo
---	   ,Provenance
+	   ,Provenance
 	   ,CommercialId
 	   ,SalonId
 	   ,ModePmtHorsLigne
@@ -149,7 +154,8 @@ BEGIN
 	      ,a.Description
 	      ,a.PaymentMethod
 	      ,a.ActivationCode               AS CodePromo
---	      ,a.Provenance
+	      , a.Provenance -- Retour en arrière effectué le 21/05/2015
+	      -- case when a.Provenance like N'%oneclic%' then N'OneClick' else N'WEB' end	AS Provenance
 	      ,a.IdentifiantDuCommercial      AS CommercialId
 	      ,a.IdentifiantDuSalon           AS SalonId
 	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
@@ -169,9 +175,7 @@ BEGIN
 	       AND a.ProductType <> N'Service'
 	       AND a.OrderStatus = N'Completed'
 	
-	-- Recuperer les lignes rejetees a cause de ClientUserId absent de CusCompteEFR
-	-- mais dont le sIdCompte est arrive depuis dans CusCompteEFR
-	
+
 	-- La table #T_FTS servira au recalcul des statistiques 
 	
 	IF OBJECT_ID(N'tempdb..#T_FTS') IS NOT NULL
@@ -207,13 +211,13 @@ BEGIN
 	           INNER JOIN etl.VEL_Accounts b
 	                ON  a.ClientUserId = b.ClientUserId
 	                    AND b.Valid = 1
-	           INNER JOIN ref.CatalogueProduits c
+	/*           INNER JOIN ref.CatalogueProduits c
 	                ON  a.ContentItemId = c.OriginalID
 	                    AND c.SourceID = 10
-	                    AND c.Appartenance = 2
+	                    AND c.Appartenance = 2 */
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
-	           AND a.ProductType <> N'Service'
-	           AND a.OrderStatus = N'Completed'
+	     /*      AND a.ProductType <> N'Service'
+	           AND a.OrderStatus = N'Completed' */
 	END
 	ELSE
 	BEGIN
@@ -289,7 +293,7 @@ BEGIN
 	   ,ProductDescription
 	   ,MethodePaiement
 	   ,CodePromo
---	   ,Provenance
+	   ,Provenance
 	   ,CommercialId
 	   ,SalonId
 	   ,ModePmtHorsLigne
@@ -311,7 +315,8 @@ BEGIN
 	      ,a.Description
 	      ,a.PaymentMethod
 	      ,a.ActivationCode               AS CodePromo
---	      ,a.Provenance
+	      , a.Provenance -- Retour en arrière effectué le 21/05/2015
+	      -- case when a.Provenance like N'%oneclic%' then N'OneClick' else N'WEB' end	AS Provenance
 	      ,a.IdentifiantDuCommercial      AS CommercialId
 	      ,a.IdentifiantDuSalon           AS SalonId
 	      ,CASE UPPER(etl.Trim(a.PaymentMethod))
@@ -360,15 +365,14 @@ BEGIN
 	    FROM   #T_Achats a
 	           INNER JOIN (
 	                    SELECT RANK() OVER(
-	                               PARTITION BY b.sIdCompte ORDER BY b.ActionID 
+	                               PARTITION BY b.sIdCompte ORDER BY CAST(b.ActionID AS INT) 
 	                               DESC
 	                              ,b.ImportID DESC
 	                           ) AS N1
 	                          ,b.sIdCompte
 	                          ,b.iRecipientId
 	                    FROM   #CusCompteTmp b
-	                    WHERE  b.LigneStatut <> 1
-	                ) AS r1
+	                    ) AS r1
 	                ON  a.ClientUserId = r1.sIdCompte
 	    WHERE  r1.N1 = 1
 	END
@@ -391,6 +395,7 @@ BEGIN
 	                ON  a.iRecipientID = b.OriginalID
 	                    AND b.SourceID = @SourceID_Contact
 	END
+	
 	DELETE b
 	FROM   #T_Achats a
 	       INNER JOIN #T_Recup b
@@ -441,7 +446,7 @@ BEGIN
 	      ,a.ProductDescription
 	      ,a.MethodePaiement
 	      ,a.CodePromo
-	      ,N'WEB'
+	      ,a.Provenance
 	      ,a.CommercialId
 	      ,a.SalonId
 	      ,a.ModePmtHorsLigne
@@ -523,22 +528,19 @@ BEGIN
 	
 	
 	/********** AUTOCALCULATE REJECTSTATS **********/
-	--	IF (
-	--	       EXISTS(
-	--	           SELECT NULL
-	--	           FROM   sys.tables t
-	--	                  INNER JOIN sys.[schemas] s
-	--	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
-	--	           WHERE  s.name = 'import'
-	--	                  AND t.Name = 'PVL_Achats'
-	--	       )
-	--	   )
-	--	    EXECUTE [QTSDQF].[dbo].[RejetsStats]
-	--	            '95940C81-C7A7-4BD9-A523-445A343A9605'
-	--	           ,'PVL_Achats'
-	--	           ,@FichierTS
+		IF (
+		       EXISTS(
+		           SELECT NULL
+		           FROM   sys.tables t
+		                  INNER JOIN sys.[schemas] s
+		                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+		           WHERE  s.name = 'import'
+		                  AND t.Name = 'PVL_Achats'
+		       )
+		   )
+		    EXECUTE [QTSDQF].[dbo].[RejetsStats]
+		            '95940C81-C7A7-4BD9-A523-445A343A9605'
+		           ,'PVL_Achats'
+		           ,@FichierTS
 END
-
-GO
-
 

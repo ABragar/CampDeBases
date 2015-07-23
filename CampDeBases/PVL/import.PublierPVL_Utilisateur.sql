@@ -1,11 +1,18 @@
-﻿USE [AmauryVUC]
+USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 29.04.2015 17:39:55 ******/
+
+/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 23/07/2015 11:47:54 ******/
+DROP PROCEDURE [import].[PublierPVL_Utilisateur]
+GO
+
+/****** Object:  StoredProcedure [import].[PublierPVL_Utilisateur]    Script Date: 23/07/2015 11:47:54 ******/
 SET ANSI_NULLS ON
 GO
+
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROC [import].[PublierPVL_Utilisateur] @FichierTS NVARCHAR(255)
+
+CREATE PROC [import].[PublierPVL_Utilisateur] @FichierTS NVARCHAR(255)
 AS
 -- =============================================
 -- Author:		Anatoli VELITCHKO
@@ -22,8 +29,9 @@ AS
 -- Modification date: 08/05/2015
 -- Modifications : join with PublierPVL_Utilisateur_EQ,LP,FF
 -- Modified by :	Andrei BRAGAR
--- Modification date: 15/07/2015
+-- Modification date: 15/07/2015.
 -- Modifications : public contacts with SourceID = 10
+-- Modifications validées : par Anatoli VELITCHKO le 22/07/2015
 -- =============================================
 BEGIN
 	SET NOCOUNT ON
@@ -159,8 +167,8 @@ BEGIN
 	           INNER JOIN import.SSO_Cumul b
 	                ON  a.EmailAddress = b.email_courant
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,2) = POWER(CAST(2 AS BIGINT) ,2)
-	         and a.FichierTS like @FilePrefix
-			 and a.FichierTS<>@FichierTS
+	    and a.FichierTS like @FilePrefix
+	    and a.FichierTS<>@FichierTS
 	    
 	    INSERT #T_Recup
 	      (
@@ -175,9 +183,9 @@ BEGIN
 	           INNER JOIN brut.Emails b
 	                ON  a.EmailAddress = b.Email
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,2) = POWER(CAST(2 AS BIGINT) ,2)
-	         and a.FichierTS like @FilePrefix
-			and a.FichierTS<>@FichierTS
-			
+	    and a.FichierTS like @FilePrefix
+	    and a.FichierTS<>@FichierTS
+	    
 	    UPDATE a
 	    SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,2)
 	    FROM   #T_Recup a
@@ -198,9 +206,9 @@ BEGIN
 	           INNER JOIN #CusCompteTmp b
 	                ON  a.ClientUserId = b.sIdCompte
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,42) = POWER(CAST(2 AS BIGINT) ,42)
-	         and a.FichierTS like @FilePrefix
-			 and a.FichierTS<>@FichierTS
-			 
+	    and a.FichierTS like @FilePrefix
+	    and a.FichierTS<>@FichierTS
+	    
 	    UPDATE a
 	    SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,42)
 	    FROM   #T_Recup a
@@ -264,6 +272,8 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	WHERE  a.LigneStatut = 0
+	       --AND ISDATE(a.LastUpdated) = 1
+	       --AND ISDATE(a.CreateDate) = 1
 
 	IF @FilePrefix = N'LP%'--LP
 	BEGIN
@@ -476,6 +486,7 @@ BEGIN
 	                             END
 	                AND c.TypeRef = N'CIVILITE'
 	WHERE  pu.FichierTS <> @FichierTS --exclude current day
+		   AND pu.ClientUserId is NOT NULL
 	       AND pu.FichierTS LIKE @FilePrefix --	File prefix
 	       AND pu.LigneStatut = 1
 	       AND pu.RejetCode = @rejeteCode
@@ -596,9 +607,9 @@ BEGIN
 	SET    t.ProfilID = c.ProfilID
 	FROM   #T_Contacts t
 	       INNER JOIN brut.Contacts AS c
-	            ON  t.OriginalID = c.OriginalID
-	WHERE  c.SourceID = @SourceID
-	       AND t.ProfilID IS NULL 
+	            ON  t.OriginalID = c.OriginalID and c.SourceID = @SourceID 
+	WHERE  --c.SourceID = @SourceID 	       AND 
+	t.ProfilID IS NULL 
 	-- end brut.contacts
 	
 	-- update ProfilID for brut.ConsentementsEmail
@@ -898,54 +909,58 @@ BEGIN
 	DECLARE @FTS NVARCHAR(255)
 	DECLARE @S NVARCHAR(1000)
 	
-	--DECLARE c_fts CURSOR  
-	--FOR
-	--    SELECT FichierTS
-	--    FROM   #T_FTS
+	DECLARE c_fts CURSOR  
+	FOR
+	    SELECT FichierTS
+	    FROM   #T_FTS
 	
-	--OPEN c_fts
+	OPEN c_fts
 	
-	--FETCH c_fts INTO @FTS
+	FETCH c_fts INTO @FTS
 	
-	--WHILE @@FETCH_STATUS = 0
-	--BEGIN
-	--    SET @S = 
-	--        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Utilisateur'', N'''
-	--        + @FTS + N''' ; '
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+	    SET @S = 
+	        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Utilisateur'', N'''
+	        + @FTS + N''' ; '
 	    
-	--    IF (
-	--           EXISTS(
-	--               SELECT NULL
-	--               FROM   sys.tables t
-	--                      INNER JOIN sys.[schemas] s
-	--                           ON  s.SCHEMA_ID = t.SCHEMA_ID
-	--               WHERE  s.name = 'import'
-	--                      AND t.Name = 'PVL_Utilisateur'
-	--           )
-	--       )
-	--        EXECUTE (@S) 
+	    IF (
+	           EXISTS(
+	               SELECT NULL
+	               FROM   sys.tables t
+	                      INNER JOIN sys.[schemas] s
+	                           ON  s.SCHEMA_ID = t.SCHEMA_ID
+	               WHERE  s.name = 'import'
+	                      AND t.Name = 'PVL_Utilisateur'
+	           )
+	       )
+	        EXECUTE (@S) 
 	    
-	--    FETCH c_fts INTO @FTS
-	--END
+	    FETCH c_fts INTO @FTS
+	END
 	
-	--CLOSE c_fts
-	--DEALLOCATE c_fts
+	CLOSE c_fts
+	DEALLOCATE c_fts
 	
 	
-	--/********** AUTOCALCULATE REJECTSTATS **********/
-	--IF (
-	--       EXISTS(
-	--           SELECT NULL
-	--           FROM   sys.tables t
-	--                  INNER JOIN sys.[schemas] s
-	--                       ON  s.SCHEMA_ID = t.SCHEMA_ID
-	--           WHERE  s.name = 'import'
-	--                  AND t.Name = 'PVL_Utilisateur'
-	--       )
-	--   )
-	--    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
-	--            '95940C81-C7A7-4BD9-A523-445A343A9605'
-	--           ,'PVL_Utilisateur'
-	--           ,@FichierTS
+	/********** AUTOCALCULATE REJECTSTATS **********/
+	IF (
+	       EXISTS(
+	           SELECT NULL
+	           FROM   sys.tables t
+	                  INNER JOIN sys.[schemas] s
+	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+	           WHERE  s.name = 'import'
+	                  AND t.Name = 'PVL_Utilisateur'
+	       )
+	   )
+	    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
+	            '95940C81-C7A7-4BD9-A523-445A343A9605'
+	           ,'PVL_Utilisateur'
+	           ,@FichierTS
 END
     
+
+GO
+
+
