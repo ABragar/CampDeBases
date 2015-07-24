@@ -413,6 +413,13 @@ BEGIN
 	                    AND b.SourceID = @SourceID_Contact
 	END
 	
+	UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Achats a
+	           INNER JOIN brut.Contacts b
+	                ON @PrefixContact + a.ClientUserID = b.OriginalID
+	                    AND b.SourceID = 10
+	
 	DELETE b
 	FROM   #T_Achats a
 	       INNER JOIN #T_Recup b

@@ -430,6 +430,14 @@ BEGIN
 	           INNER JOIN brut.Contacts b
 	                ON  a.iRecipientID = b.OriginalID
 	                    AND b.SourceID = @SourceID_Contact
+	                    
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Abos a
+	           INNER JOIN brut.Contacts b
+	                ON @PrefixContact + a.ClientUserID = b.OriginalID
+	                    AND b.SourceID = 10
+	    WHERE  a.ProfilID IS NULL
 	    
 	    DELETE b
 	    FROM   #T_Abos a
@@ -1321,6 +1329,14 @@ BEGIN
 	                ON  a.iRecipientID = b.OriginalID
 	                    AND b.SourceID = @SourceID_Contact
 	END	
+	
+		UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_AboDernierStatut a
+	           INNER JOIN brut.Contacts b
+	                ON @PrefixContact + a.ClientUserId = b.OriginalID
+	                    AND b.SourceID = 10
+	
 	DELETE #T_AboDernierStatut
 	WHERE  ProfilID IS NULL
 	
@@ -1330,6 +1346,7 @@ BEGIN
 	       INNER JOIN ref.CatalogueAbonnements b
 	            ON  a.ServiceID = b.OriginalID
 	                AND b.SourceID = @SourceID
+	                
 	
 	DELETE #T_AboDernierStatut
 	WHERE  CatalogueAbosID IS NULL
