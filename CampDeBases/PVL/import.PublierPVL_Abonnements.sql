@@ -36,6 +36,7 @@ BEGIN
 	DECLARE @FilePrefix NVARCHAR(5) = NULL
 	DECLARE @CusCompteTableName NVARCHAR(30)
 	DECLARE @sqlCommand NVARCHAR(500)
+	DECLARE @PrefixContact NVARCHAR(3) = LEFT(@FichierTS,2)+N'-'
 	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
@@ -234,6 +235,24 @@ BEGIN
 	                ON  a.ClientUserId = b.sIdCompte
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
 	END
+	
+	INSERT INTO #T_Recup
+	  (
+	    RejetCode
+	   ,ImportID
+	   ,FichierTS
+	  )
+	SELECT a.RejetCode
+	      ,a.ImportID
+	      ,a.FichierTS
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN brut.Contacts AS b
+	            ON  @PrefixContact + a.ClientUserId = b.OriginalID
+	WHERE  b.SourceID = 10
+	       AND a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	       AND a.FichierTS LIKE @FilePrefix
+
+	
 	
 	UPDATE a
 	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,14)

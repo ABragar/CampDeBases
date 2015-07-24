@@ -1,4 +1,4 @@
-USE [AmauryVUC]
+ USE [AmauryVUC]
 GO
 /****** Object:  StoredProcedure [import].[PublierPVL_Achats]    Script Date: 07/23/2015 13:40:44 ******/
 SET ANSI_NULLS ON
@@ -35,6 +35,7 @@ BEGIN
 	DECLARE @FilePrefix NVARCHAR(5) = NULL
 	DECLARE @CusCompteTableName NVARCHAR(30)
 	DECLARE @sqlCommand NVARCHAR(500)
+	DECLARE @PrefixContact NVARCHAR(3) = LEFT(@FichierTS,2)+N'-'
 	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
@@ -236,6 +237,22 @@ BEGIN
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
 	           AND a.FichierTS LIKE @FilePrefix
 	END
+	
+	INSERT INTO #T_Recup
+	  (
+	    RejetCode
+	   ,ImportID
+	   ,FichierTS
+	  )
+	SELECT a.RejetCode
+	      ,a.ImportID
+	      ,a.FichierTS
+	FROM   import.PVL_Achats a
+	       INNER JOIN brut.Contacts AS b
+	            ON  @PrefixContact + a.ClientUserId = b.OriginalID
+	WHERE  b.SourceID = 10
+	       AND a.RejetCode & POWER(CAST(2 AS BIGINT) ,3) = POWER(CAST(2 AS BIGINT) ,3)
+	       AND a.FichierTS LIKE @FilePrefix
 	
 	UPDATE a
 	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,3)
