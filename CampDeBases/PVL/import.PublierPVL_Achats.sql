@@ -45,12 +45,12 @@ BEGIN
 	    SET @FilePrefix = N'FF%'
 	END
 	
-	IF @FichierTS LIKE N'EQP%'
+	IF @FichierTS LIKE N'EQ%'
 	BEGIN
 	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
 	    SET @SourceID = 10 -- PVL
 	    SET @SourceID_Contact = 1 -- Neolane
-	    SET @FilePrefix = N'EQP%'
+	    SET @FilePrefix = N'EQ%'
 	END
 	
 	IF @FichierTS LIKE N'LP%'
@@ -293,6 +293,91 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	
+	
+-- Revalider les lignes de import.PVL_Abonnements en RejetCode=20
+-- i.e. celles qui sont invalides à cause des lignes Achats invalides 
+-- mais qui ont été récupérées
+		
+	if object_id(N'tempdb..#T_Recup_20') is not null
+		drop table #T_Recup_20
+	
+	create table #T_Recup_20
+	(
+	RejetCode bigint null
+	, ImportID int null
+	, FichierTS nvarchar(255) null
+	)
+
+insert #T_Recup_20
+(
+RejetCode
+, ImportID
+, FichierTS
+)
+select  i.RejetCode
+, i.ImportID
+, i.FichierTS
+from #T_Recup a inner join import.PVL_Abonnements i on a.ImportID=i.ImportID
+inner join import.PVL_Achats b on i.ServiceId=b.ServiceId
+								and i.ClientUserID=b.ClientUserId
+								and 
+								cast(i.SubscriptionLastUpdated as datetime) 
+									between dateadd(minute,-10,cast(b.OrderDate as datetime))
+										and dateadd(minute,10,cast(b.OrderDate as datetime))
+								and b.LigneStatut<>1
+								and b.ProductType=N'Service'
+								and b.OrderStatus<>N'Refunded'
+where i.SubscriptionStatusID=N'2' -- Active Subscription
+and i.RejetCode & 20 = 20
+and b.RejetCode=0
+and i.FichierTS like @FilePrefix
+and b.FichierTS like @FilePrefix
+
+	UPDATE a
+	SET    RejetCode = a.RejetCode - 20
+	FROM   #T_Recup_20 a
+
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup_20 b
+	            ON  a.ImportID = b.ImportID
+	
+	UPDATE a
+	SET    LigneStatut = 0
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN #T_Recup_20 b
+	            ON  a.ImportID = b.ImportID
+	WHERE  b.RejetCode = 0
+	
+	UPDATE a
+	SET    RejetCode = b.RejetCode
+	FROM   rejet.PVL_Abonnements a
+	       INNER JOIN #T_Recup_20 b
+	            ON  a.ImportID = b.ImportID
+	
+	if object_id(N'tempdb..#T_FTS_ABO') is not null
+		drop table #T_FTS_ABO
+	
+	create table #T_FTS_ABO (FichierTS nvarchar(255) null)
+	
+	
+	INSERT #T_FTS_ABO
+	  (
+	    FichierTS
+	  )
+	SELECT DISTINCT FichierTS
+	FROM   #T_Recup_20
+	
+	DELETE a
+	FROM   #T_Recup_20 a
+	WHERE  a.RejetCode <> 0
+	
+	DELETE a
+	FROM   rejet.PVL_Abonnements a
+	       INNER JOIN #T_Recup_20 b
+	            ON  a.ImportID = b.ImportID
+
 	INSERT #T_Achats
 	  (
 	    ProfilID
@@ -549,6 +634,39 @@ BEGIN
 	
 	CLOSE c_fts
 	DEALLOCATE c_fts
+	
+	DECLARE c_fts_abo CURSOR  
+	FOR
+	    SELECT FichierTS
+	    FROM   #T_FTS_ABO
+	
+	OPEN c_fts_abo
+	
+	FETCH c_fts_abo INTO @FTS
+	
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+	    SET @S = 
+	        N'EXECUTE [QTSDQF].[dbo].[RejetsStats] ''95940C81-C7A7-4BD9-A523-445A343A9605'', ''PVL_Abonnements'', N'''
+	        + @FTS + N''' ; '
+	    
+	    IF (
+	           EXISTS(
+	               SELECT NULL
+	               FROM   sys.tables t
+	                      INNER JOIN sys.[schemas] s
+	                           ON  s.SCHEMA_ID = t.SCHEMA_ID
+	               WHERE  s.name = 'import'
+	                      AND t.Name = 'PVL_Abonnements'
+	           )
+	       )
+	        EXECUTE (@S) 
+	    
+	    FETCH c_fts_abo INTO @FTS
+	END
+	
+	CLOSE c_fts_abo
+	DEALLOCATE c_fts_abo
 	
 	
 	/********** AUTOCALCULATE REJECTSTATS **********/

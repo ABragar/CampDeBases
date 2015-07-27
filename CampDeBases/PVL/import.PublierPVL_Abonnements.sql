@@ -44,10 +44,10 @@ BEGIN
 	    SET @FilePrefix = N'FF%'
 	END
 	
-	IF @FichierTS LIKE N'EQP%'
+	IF @FichierTS LIKE N'EQ%'
 	BEGIN
 	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
-	    SET @FilePrefix = N'EQP%'
+	    SET @FilePrefix = N'EQ%'
 	END
 	
 	IF @FichierTS LIKE N'LP%'
@@ -264,15 +264,6 @@ BEGIN
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
 	
-	IF @FilePrefix = N'LP%'
-	BEGIN
-	    UPDATE a
-	    SET    RejetCode = b.RejetCode
-	    FROM   rejet.PVL_Abonnements a
-	           INNER JOIN #T_Recup b
-	                ON  a.ImportID = b.ImportID
-	END	
-	
 	UPDATE a
 	SET    LigneStatut = 0
 	FROM   import.PVL_Abonnements a
@@ -301,6 +292,7 @@ BEGIN
 	FROM   rejet.PVL_Abonnements a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
+
 	
 	INSERT #T_Abos
 	  (
@@ -445,6 +437,7 @@ BEGIN
 	                ON  a.ImportID = b.ImportID
 	    WHERE  a.ProfilID IS NULL
 	END
+	
 	DELETE #T_Abos
 	WHERE  ProfilID IS NULL
 	
