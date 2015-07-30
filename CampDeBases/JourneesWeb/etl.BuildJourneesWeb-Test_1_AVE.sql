@@ -12,7 +12,7 @@ BEGIN
 	   ,NbVisites              INT NOT NULL DEFAULT 0
 	   ,NbPagesVues            INT NOT NULL DEFAULT 0
 	   ,NbPremiumPagesVues     INT NOT NULL DEFAULT 0
-	   ,MoyenneDuree           DECIMAL NOT NULL DEFAULT 0
+	   ,MoyenneDuree           INT NOT NULL DEFAULT 0
 	   ,CodeOS                 INT NULL
 	   ,OrderOS                INT
 	   ,OS                     NVARCHAR(255)
@@ -49,8 +49,8 @@ BEGIN
 	                      WHEN m.typeRef = N'OSMOBILE' THEN 2
 	                      ELSE 3
 	                 END
-	      ,DateVisite                AS PremierVisite
-	      ,DateVisite                AS DernierVisite
+	      ,DateVisite AS PremierVisite
+	      ,DateVisite AS DernierVisite
 	      ,ROW_NUMBER() OVER(
 	           PARTITION BY MasterID
 	          ,SiteId
@@ -67,18 +67,32 @@ BEGIN
 	                WHEN m.typeRef = N'OSMOBILE' THEN 2
 	                ELSE 3
 	           END
-	       )                            rowNum
-	FROM   etl.VisitesWeb            AS vw
+	       ) rowNum
+	FROM   etl.VisitesWeb AS vw
 	       LEFT JOIN ref.Misc m
 	            ON  vw.CodeOS = m.RefID
-	WHERE 
-	-- NOT (
-	--           vw.MasterID IS NULL
-	--           OR vw.SiteId IS NULL
-	--           OR vw.DateVisite IS NULL
-	--       )
-	--AND datevisite >= '20150601'
-	vw.MasterID = 8903
+	WHERE  /* NOT (
+	           vw.MasterID IS NULL
+	           OR vw.SiteId IS NULL
+	           OR vw.DateVisite IS NULL
+	       ) 
+	AND */ vw.DateVisite between '20150601' and '20150627'
+	-- (7737015 row(s) affected)
+	
+	select * from #T_JourneesWeb
+	
+	select COUNT(*) from etl.VisitesWeb AS vw 
+	WHERE   (
+	           vw.MasterID IS NULL
+	           OR vw.SiteId IS NULL
+	           OR vw.DateVisite IS NULL
+	       )
+	       -- 0
+	       
+	--AND vw.MasterID = 10626
+	
+	select max(a.DateVisite) from #T_JourneesWeb a
+	-- 2015-07-28
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb(MasterID)
 	CREATE INDEX ix_siteId ON #T_JourneesWeb(SiteID)
@@ -95,33 +109,78 @@ BEGIN
 	      ,SUM(NbPremiumPagesVues)  AS NbPremiumPagesVues
 	      ,SUM(CAST(MoyenneDuree AS DECIMAL)) AS MoyenneDuree
 	      ,vw.CodeOS
+	      ,vw.OrderOS
 	      ,MIN(PremierVisite)       AS PremierVisite
 	      ,MAX(DernierVisite)       AS DernierVisite
-	      ,ROW_NUMBER() OVER(
+	      ,RANK() OVER(
 	           PARTITION BY MasterID
 	          ,SiteID
 	          ,datevisite ORDER BY COUNT(NbVisites) DESC
 	          ,SUM(NbPagesVues) DESC
-	          ,SUM(CAST(MoyenneDuree AS DECIMAL)) DESC
-	          ,OrderOS
-	          ,vw.CodeOS DESC
+	          ,AVG(CAST(MoyenneDuree AS DECIMAL)) DESC
+	          ,vw.OrderOS ASC
 	       )                        AS OSDense
-	       INTO #T_JourneesWeb_OSDense
+--	       INTO #T_JourneesWeb_OSDense
 	FROM   #T_JourneesWeb           AS vw
 	WHERE  rowNum = 1 --delete doubles
+	--AND masterID = 276969 AND vw.SiteID = 492987
 	GROUP BY
 	       MasterID
 	      ,SiteId
 	      ,DateVisite
 	      ,vw.CodeOS
-	      ,OrderOS
+	      ,vw.OrderOS
+	-- (2200194 row(s) affected)
 	
-	CREATE INDEX ix_masterId ON #T_JourneesWeb_OSDense(MasterID ,SiteID ,DateVisite)
+	select top 1000 *
+	from #T_JourneesWeb_OSDense a
+	order by a.MasterID,a.DateVisite,a.CodeOS
 	
-	DROP TABLE #T_JourneesWeb
+	select count(*) from
+	(
+	select COUNT(*) as N
+			, a.MasterID
+	      , a.SiteID
+	      , a.DateVisite
+	from #T_JourneesWeb_OSDense a
+	group by a.MasterID
+	      , a.SiteID
+	      , a.DateVisite
+	      ) as r1
+	     where r1.N>1
+	     -- 13390
+	     
+	select top 1000 a.*
+	from #T_JourneesWeb_OSDense a inner join (
+	select COUNT(*) as N
+			, a.MasterID
+	      , a.SiteID
+	      , a.DateVisite
+	from #T_JourneesWeb_OSDense a
+	group by a.MasterID
+	      , a.SiteID
+	      , a.DateVisite
+	      ) as r1 on a.MasterID=r1.MasterID
+	      and a.SiteID=r1.SiteID
+	      and a.DateVisite=r1.DateVisite
+	where r1.N>1
+	order by a.MasterID,a.DateVisite,a.CodeOS
 	
+	CREATE INDEX ix_masterId ON #T_JourneesWeb_OSDense(MasterID, SiteID, DateVisite)
 	
-
+	-- DROP TABLE #T_JourneesWeb
+	
+	select avg(cast(a.MoyenneDuree as float)) from #T_JourneesWeb a 
+	where a.MasterID=5776
+	and a.SiteID=496306
+	and a.DateVisite=N'2015-06-17'
+	-- 1,5
+	
+	select avg(cast(a.MoyenneDuree as float)) from #T_JourneesWeb_OSDense a 
+	where a.MasterID=5776
+	and a.SiteID=496306
+	and a.DateVisite=N'2015-06-17'
+	-- 2,6363635
 	
 	IF OBJECT_ID('tempdb..#T_JourneesWeb_aggregate') IS NOT NULL
 	    DROP TABLE #T_JourneesWeb_aggregate
@@ -132,7 +191,7 @@ BEGIN
 	      ,SUM(J1.NbVisites)           AS NbVisites
 	      ,SUM(J1.NbPagesVues)         AS NbPagesVues
 	      ,SUM(J1.NbPremiumPagesVues)  AS NbPremiumPagesVues
-	      ,SUM(J1.MoyenneDuree) / SUM(J1.NbVisites) AS MoyenneDuree
+	      ,SUM(J1.MoyenneDuree)/SUM(J1.NbVisites)        AS MoyenneDuree
 	      ,MIN(J1.PremierVisite)       AS PremierVisite
 	      ,MAX(J1.DernierVisite)       AS DernierVisite
 	      ,J2.CodeOS                   AS CodeOS
@@ -155,6 +214,8 @@ BEGIN
 	--CREATE INDEX ix_masterId ON #T_JourneesWeb_aggregate(MasterID)
 	--CREATE INDEX ix_siteId ON #T_JourneesWeb_aggregate(SiteID)
 	--CREATE INDEX ix_DateVisite ON #T_JourneesWeb_aggregate(DateVisite)
+	
+
 	
 	DROP TABLE #T_JourneesWeb_OSDense 
 	
@@ -180,7 +241,7 @@ BEGIN
 	           AND sw.Marque = a.Marque
 	           AND J.DateVisite BETWEEN a.DebutAboDate AND a.FinAboDate
 	) i
-select * from #T_JourneesWeb_aggregate	
+	
 	-- OptinEditorial
 	UPDATE J
 	SET    OptinEditorial = CASE 
@@ -232,13 +293,5 @@ select * from #T_JourneesWeb_aggregate
 	DROP TABLE #T_JourneesWeb_aggregate
 END
 
---SELECT * FROM dbo.JourneesWeb AS jw
---WHERE 
---masterid = 8903 AND jw.SiteID= 496306 AND jw.DateVisite =  '20150623'
 
---SELECT CAST(10 AS DECIMAL)/5
-
-----ALTER TABLE dbo.JourneesWeb
------ADD CONSTRAINT pk_MasterSiteDate PRIMARY KEY (MasterID,SiteID,DateVisite) 
-
---SELECT 
+  

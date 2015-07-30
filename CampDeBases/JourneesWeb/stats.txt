@@ -1,0 +1,15 @@
+
+(59555676 row(s) affected)
+
+(17255238 row(s) affected)
+
+(17116494 row(s) affected)
+
+(16470174 row(s) affected)
+
+(16470174 row(s) affected)
+00:54:39
+
+
+
+- ConsentementsEmail" wrote 10510272 rows.
