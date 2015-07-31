@@ -12,7 +12,7 @@ BEGIN
 	   ,NbVisites              INT NOT NULL DEFAULT 0
 	   ,NbPagesVues            INT NOT NULL DEFAULT 0
 	   ,NbPremiumPagesVues     INT NOT NULL DEFAULT 0
-	   ,MoyenneDuree           DECIMAL NOT NULL DEFAULT 0
+	   ,MoyenneDuree           FLOAT NOT NULL DEFAULT 0
 	   ,CodeOS                 INT NULL
 	   ,OrderOS                INT
 	   ,OS                     NVARCHAR(255)
@@ -42,7 +42,7 @@ BEGIN
 	      ,VisiteId                  AS NbVisites
 	      ,PagesNb                   AS NbPagesVues
 	      ,PagesPremiumNb            AS NbPremiumPagesVues
-	      ,CAST(Duree AS DECIMAL)    AS MoyenneDuree
+	      ,CAST(Duree AS FLOAT)    AS MoyenneDuree
 	      ,codeOS
 	      ,OrderOS = CASE 
 	                      WHEN m.typeRef = N'OSTABLETTE' THEN 1
@@ -71,14 +71,14 @@ BEGIN
 	FROM   etl.VisitesWeb            AS vw
 	       LEFT JOIN ref.Misc m
 	            ON  vw.CodeOS = m.RefID
-	WHERE 
+	--WHERE 
 	-- NOT (
 	--           vw.MasterID IS NULL
 	--           OR vw.SiteId IS NULL
 	--           OR vw.DateVisite IS NULL
 	--       )
-	--AND datevisite >= '20150601'
-	vw.MasterID = 8903
+	--datevisite >= '20150601'
+	--vw.MasterID = 461
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb(MasterID)
 	CREATE INDEX ix_siteId ON #T_JourneesWeb(SiteID)
@@ -93,7 +93,7 @@ BEGIN
 	      ,COUNT(NbVisites)         AS NbVisites
 	      ,SUM(NbPagesVues)         AS NbPagesVues
 	      ,SUM(NbPremiumPagesVues)  AS NbPremiumPagesVues
-	      ,SUM(CAST(MoyenneDuree AS DECIMAL)) AS MoyenneDuree
+	      ,SUM(CAST(MoyenneDuree AS FLOAT)) AS MoyenneDuree
 	      ,vw.CodeOS
 	      ,MIN(PremierVisite)       AS PremierVisite
 	      ,MAX(DernierVisite)       AS DernierVisite
@@ -102,7 +102,7 @@ BEGIN
 	          ,SiteID
 	          ,datevisite ORDER BY COUNT(NbVisites) DESC
 	          ,SUM(NbPagesVues) DESC
-	          ,SUM(CAST(MoyenneDuree AS DECIMAL)) DESC
+	          ,SUM(CAST(MoyenneDuree AS FLOAT)) DESC
 	          ,OrderOS
 	          ,vw.CodeOS DESC
 	       )                        AS OSDense
@@ -119,13 +119,10 @@ BEGIN
 	CREATE INDEX ix_masterId ON #T_JourneesWeb_OSDense(MasterID ,SiteID ,DateVisite)
 	
 	DROP TABLE #T_JourneesWeb
-	
-	
 
-	
 	IF OBJECT_ID('tempdb..#T_JourneesWeb_aggregate') IS NOT NULL
 	    DROP TABLE #T_JourneesWeb_aggregate
-	--
+	
 	SELECT J1.MasterId
 	      ,J1.SiteId
 	      ,J1.DateVisite
@@ -152,12 +149,10 @@ BEGIN
 	      ,J1.DateVisite
 	      ,J2.CodeOS 
 	
-	--CREATE INDEX ix_masterId ON #T_JourneesWeb_aggregate(MasterID)
-	--CREATE INDEX ix_siteId ON #T_JourneesWeb_aggregate(SiteID)
-	--CREATE INDEX ix_DateVisite ON #T_JourneesWeb_aggregate(DateVisite)
-	
 	DROP TABLE #T_JourneesWeb_OSDense 
-	
+
+	CREATE INDEX ix_masterId ON #T_JourneesWeb_aggregate(MasterID)
+
 	--Numeric
 	UPDATE J
 	SET    Marque = sw.Marque
@@ -180,24 +175,36 @@ BEGIN
 	           AND sw.Marque = a.Marque
 	           AND J.DateVisite BETWEEN a.DebutAboDate AND a.FinAboDate
 	) i
-select * from #T_JourneesWeb_aggregate	
-	-- OptinEditorial
+
+	-- OptinEditorial from brut.ConsentementsEmail
 	UPDATE J
-	SET    OptinEditorial = CASE 
-	                             WHEN xxx.valeur = 1 THEN 1
-	                             ELSE 0
-	                        END
+	SET    OptinEditorial     = ISNULL(x2.OptinEditorial ,0)
 	FROM   #T_JourneesWeb_aggregate J
 	       OUTER APPLY (
-	    SELECT TOP 1 ce.*
-	    FROM   brut.ConsentementsEmail AS ce
-	           LEFT JOIN ref.Contenus cn
-	                ON  cn.TypeContenu = 1
-	                    AND ce.ContenuID = cn.ContenuID
-	                    AND cn.MarqueID = J.Marque
-	    WHERE  J.DateVisite > ce.ConsentementDate
-	           AND ce.MasterID = J.MasterID
-	) xxx
+	    SELECT 1 AS OptinEditorial
+	    WHERE  1              = ANY(
+	               SELECT valeur
+	               FROM   (
+	                          SELECT masterID
+	                                ,ce.ContenuID
+	                                ,ConsentementDate
+	                                ,valeur
+	                                ,ROW_NUMBER() OVER(
+	                                     PARTITION BY masterId
+	                                    ,ce.ContenuId ORDER BY ConsentementDate 
+	                                     DESC
+	                                 ) N
+	                          FROM   brut.ConsentementsEmail ce
+	                                 INNER JOIN ref.Contenus cn
+	                                      ON  cn.TypeContenu = 1
+	                                          AND ce.ContenuID = cn.ContenuID
+	                                          AND cn.MarqueID = J.Marque
+	                          WHERE  ce.MasterID = J.MasterID
+	                                 AND J.DateVisite > ConsentementDate
+	                      ) x1
+	               WHERE  N = 1
+	           )
+	) AS x2
 	
 	TRUNCATE TABLE dbo.JourneesWeb
 	INSERT INTO dbo.JourneesWeb
@@ -232,13 +239,7 @@ select * from #T_JourneesWeb_aggregate
 	DROP TABLE #T_JourneesWeb_aggregate
 END
 
---SELECT * FROM dbo.JourneesWeb AS jw
---WHERE 
---masterid = 8903 AND jw.SiteID= 496306 AND jw.DateVisite =  '20150623'
 
---SELECT CAST(10 AS DECIMAL)/5
 
-----ALTER TABLE dbo.JourneesWeb
------ADD CONSTRAINT pk_MasterSiteDate PRIMARY KEY (MasterID,SiteID,DateVisite) 
 
---SELECT 
+ 
