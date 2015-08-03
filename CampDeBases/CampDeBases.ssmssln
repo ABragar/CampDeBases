@@ -19,6 +19,8 @@ Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Typologies", "Typologies\Ty
 EndProject
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "JourneesWeb", "JourneesWeb\JourneesWeb.ssmssqlproj", "{8938B5C8-B66A-4806-BF1E-2DC7686FA79F}"
 EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "export.PROB_ChangementTypologie", "export.PROB_ChangementTypologie\export.PROB_ChangementTypologie.ssmssqlproj", "{2FED0193-B4DB-4B29-94C9-58D8F163FD76}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
@@ -32,8 +34,9 @@ Global
 		{7D490609-9511-48C7-A036-99F7F0A058C7}.Default|Default.ActiveCfg = Default
 		{81827902-13F7-45A1-B4B7-421091E5B65A}.Default|Default.ActiveCfg = Default
 		{7CF39CD3-9C7C-4227-8584-0DB8D80DE304}.Default|Default.ActiveCfg = Default
-		{F19DE97D-CB72-4AAB-B2E7-2237BBB8887F}.Default|Default.ActiveCfg = Default
 		{8938B5C8-B66A-4806-BF1E-2DC7686FA79F}.Default|Default.ActiveCfg = Default
+		{62B3E05A-B1E6-495E-BB83-83CC5E8EA5A9}.Default|Default.ActiveCfg = Default
+		{2FED0193-B4DB-4B29-94C9-58D8F163FD76}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
