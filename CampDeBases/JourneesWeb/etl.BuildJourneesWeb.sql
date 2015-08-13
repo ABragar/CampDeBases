@@ -18,9 +18,15 @@ BEGIN
 	   ,OS                     NVARCHAR(255)
 	   ,PremierVisite          DATETIME NOT NULL DEFAULT 0
 	   ,DernierVisite          DATETIME NOT NULL DEFAULT 0
+	   ,NumericAbo             INT
+	   ,OptinEditorial         INT
 	   ,rowNum                 INT
 	)
 	
+-- for incremental run
+DECLARE @startDate DATETIME = DATEADD(DAY,1,ISNULL((SELECT MAX(dateVisite)FROM dbo.JourneesWeb AS jw),'19000101'))
+DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
+
 	INSERT INTO #T_JourneesWeb
 	  (
 	    MasterID
@@ -34,6 +40,8 @@ BEGIN
 	   ,OrderOS
 	   ,PremierVisite
 	   ,DernierVisite
+	   ,NumericAbo
+	   ,OptinEditorial
 	   ,rowNum
 	  )
 	SELECT vw.MasterID
@@ -42,7 +50,7 @@ BEGIN
 	      ,VisiteId                  AS NbVisites
 	      ,PagesNb                   AS NbPagesVues
 	      ,PagesPremiumNb            AS NbPremiumPagesVues
-	      ,CAST(Duree AS FLOAT)    AS MoyenneDuree
+	      ,CAST(Duree AS FLOAT)      AS MoyenneDuree
 	      ,codeOS
 	      ,OrderOS = CASE 
 	                      WHEN m.typeRef = N'OSTABLETTE' THEN 1
@@ -51,6 +59,14 @@ BEGIN
 	                 END
 	      ,DateVisite                AS PremierVisite
 	      ,DateVisite                AS DernierVisite
+	      ,NumericAbo = CASE ISNULL(TypeAbo ,0)
+	                         WHEN 1 THEN 1
+	                         ELSE 0
+	                    END
+	      ,OptinEditorial = CASE ISNULL(OptinEditorial ,0)
+	                             WHEN 1 THEN 1
+	                             ELSE 0
+	                        END
 	      ,ROW_NUMBER() OVER(
 	           PARTITION BY MasterID
 	          ,SiteId
@@ -71,8 +87,7 @@ BEGIN
 	FROM   etl.VisitesWeb            AS vw
 	       LEFT JOIN ref.Misc m
 	            ON  vw.CodeOS = m.RefID
-	--where vw.DateVisite between N'20150601' and N'20150630' 
-
+	WHERE  vw.DateVisite >= @startDate AND vw.DateVisite < @endDate
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb(MasterID)
 	CREATE INDEX ix_siteId ON #T_JourneesWeb(SiteID)
@@ -91,6 +106,8 @@ BEGIN
 	      ,vw.CodeOS
 	      ,MIN(PremierVisite)       AS PremierVisite
 	      ,MAX(DernierVisite)       AS DernierVisite
+	      ,MAX(vw.NumericAbo)       AS NumericAbo
+	      ,MAX(vw.OptinEditorial)   AS OptinEditorial
 	      ,ROW_NUMBER() OVER(
 	           PARTITION BY MasterID
 	          ,SiteID
@@ -111,9 +128,9 @@ BEGIN
 	      ,OrderOS
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb_OSDense(MasterID ,SiteID ,DateVisite)
-
+	
 	DROP TABLE #T_JourneesWeb
-
+	
 	IF OBJECT_ID('tempdb..#T_JourneesWeb_aggregate') IS NOT NULL
 	    DROP TABLE #T_JourneesWeb_aggregate
 	
@@ -127,9 +144,9 @@ BEGIN
 	      ,MIN(J1.PremierVisite)       AS PremierVisite
 	      ,MAX(J1.DernierVisite)       AS DernierVisite
 	      ,J2.CodeOS                   AS CodeOS
-	      ,NULL                        AS Marque
-	      ,0                           AS NumericAbo
-	      ,0                           AS OptinEditorial 
+	      ,NULL                        AS Appartenance
+	      ,MAX(J1.NumericAbo)          AS NumericAbo
+	      ,MAX(J1.OptinEditorial)      AS OptinEditorial 
 	       INTO #T_JourneesWeb_aggregate
 	FROM   #T_JourneesWeb_OSDense J1
 	       INNER JOIN #T_JourneesWeb_OSDense J2
@@ -144,107 +161,17 @@ BEGIN
 	      ,J2.CodeOS 
 	
 	DROP TABLE #T_JourneesWeb_OSDense 
-
+	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb_aggregate(MasterID)
-
-	--Numeric
+	
+	--Appartenance
 	UPDATE a
-	SET    a.Marque = b.Marque
+	SET    a.Appartenance = b.Appartenance
 	FROM   #T_JourneesWeb_aggregate a
 	       INNER JOIN ref.SitesWeb b
 	            ON  a.SiteID = b.WebSiteID
 	
-	UPDATE a
-	SET    a.NumericAbo = 1
-	FROM   #T_JourneesWeb_aggregate a
-	       INNER JOIN dbo.Abonnements b
-	            ON  a.MasterID = b.MasterID
-	                AND a.Marque = b.Marque
-	       INNER JOIN ref.CatalogueAbonnements c
-	            ON  b.CatalogueAbosID = c.CatalogueAbosID
-	WHERE  c.SupportAbo = 1 -- Numerique
-	       AND a.DateVisite BETWEEN b.DebutAboDate AND b.FinAboDate
-	       
--- OptinEditorial 
-UPDATE J
-SET    OptinEditorial = 1
-FROM   #T_JourneesWeb_aggregate J
-       INNER JOIN (
-                SELECT *
-                FROM   (
-                           SELECT J.*
-                                 ,ce.Valeur
-                                 ,ROW_NUMBER() OVER(
-                                      PARTITION BY J.masterId
-                                     ,j.siteID
-                                     ,j.DateVisite
-                                     ,ce.ContenuId ORDER BY ConsentementDate 
-                                      DESC
-                                     ,ce.Valeur ASC
-                                  ) N
-                           FROM   #T_JourneesWeb_aggregate J
-                                  INNER JOIN brut.V_NewsletterContenu AS ce
-                                       ON  ce.MasterID = J.MasterId
-                                           AND J.DateVisite > ce.ConsentementDate
-                                           AND ce.MarqueID = J.Marque
-                       ) x
-                WHERE  N = 1
-            )xxx
-            ON  xxx.MasterId = j.MasterId
-                AND xxx.SiteId = j.SiteId
-                AND xxx.DateVisite = j.DateVisite
-WHERE  xxx.valeur = 1
---(1037360 row(s) affected)	
-
---SELECT *
---INTO #T_JourneesWeb_aggregat_1
---FROM
-
---UPDATE #T_JourneesWeb_aggregate SET OptinEditorial = 0 
-
-	-- вариант №2 
-	--UPDATE J
-	--SET    OptinEditorial     = ISNULL(x2.OptinEditorial ,0)
-	--FROM   #T_JourneesWeb_aggregate J
-	--       OUTER APPLY (
-	--    SELECT 1 AS OptinEditorial
-	--    WHERE  1              = ANY(
-	--               SELECT valeur
-	--               FROM   (
-	--                          SELECT masterID
-	--                                ,ce.ContenuID
-	--                                ,ConsentementDate
-	--                                ,valeur
-	--                                ,ROW_NUMBER() OVER(
-	--                                     PARTITION BY masterId
-	--                                    ,ce.ContenuId ORDER BY ConsentementDate 
-	--                                     DESC
-	--                                     ,ce.Valeur ASC
-	--                                 ) N
-	--                          --FROM   brut.ConsentementsEmail ce
-	--                          --       INNER JOIN ref.Contenus cn
-	--                          --            ON  cn.TypeContenu = 1
-	--                          --                AND ce.ContenuID = cn.ContenuID
-	--                          --                AND cn.MarqueID = J.Marque
- --                             FROM brut.V_NewsletterContenu AS ce
-	--                          WHERE  ce.MasterID = J.MasterID
-	--                                 AND J.DateVisite > ConsentementDate
-	--                                 AND ce.MarqueID = J.Marque
-	--                      ) x1
-	--               WHERE  N = 1
-	--           )
-	--) AS x2
-	
---SELECT * FROM #T_JourneesWeb_aggregate j1
---INNER JOIN #T_JourneesWeb_aggregat_1 j2
---ON j1.masterId = j2.masterid
---AND j1.siteId = j2.siteID
---AND j1.datevisite = j2.datevisite
---AND j1.OptinEditorial <> j2.OptinEditorial	  
----- (0 row(s) affected)
-
-
-	TRUNCATE TABLE dbo.JourneesWeb
+--	TRUNCATE TABLE dbo.JourneesWeb 
 	INSERT INTO dbo.JourneesWeb
 	  (
 	    MasterID
@@ -259,6 +186,7 @@ WHERE  xxx.valeur = 1
 	   ,OptinEditorial
 	   ,PremierVisite
 	   ,DernierVisite
+	   ,Appartenance
 	  )
 	SELECT MasterId
 	      ,SiteID
@@ -272,6 +200,7 @@ WHERE  xxx.valeur = 1
 	      ,OptinEditorial
 	      ,PremierVisite
 	      ,DernierVisite
+	      ,Appartenance
 	FROM   #T_JourneesWeb_aggregate
 	
 	DROP TABLE #T_JourneesWeb_aggregate

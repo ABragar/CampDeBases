@@ -1,40 +1,27 @@
-IF OBJECT_ID('export.PROB_ChangementTypologie' ,'U') IS NOT NULL
-    DROP TABLE export.PROB_ChangementTypologie
- GO	
-CREATE TABLE export.PROB_ChangementTypologie
-(
-	MasterID            INT NOT NULL
-   ,MarqueID            INT NOT NULL
-   ,CurrTypologieID     INT NULL
-   ,PrevTypologieID     INT NULL
-   ,ChangeDate          DATE
-)
-GO
-
-ALTER PROC etl.PROB_ChangementTypologie AS
-BEGIN
-	SET NOCOUNT ON
-	DECLARE @curDate DATE = CAST(GETDATE() AS DATE)
+--ALTER PROC etl.PROB_ChangementTypologie AS
+--BEGIN
+--	SET NOCOUNT ON
+	DECLARE @curDate DATE = '20150805'
 	        
-	        MERGE export.PROB_ChangementTypologie AS e
+	        MERGE export.PROB_ChangementTypologie AS s 
 	        USING (
-	            SELECT MasterID,MarqueID, TypologieID
-	            FROM   Typologie
-	            WHERE  MasterID IS NOT NULL
-	        ) t ON (t.MasterID = e.masterId AND t.MarqueID = e.marqueId)
-	        WHEN MATCHED AND t.TypologieID <> e.CurrTypologieID THEN
+	            SELECT t.MasterID, t.MarqueID, t.TypologieID, tg.GroupID as	TypoGR1
+	            FROM   dbo.Typologie_05082015 t
+	            INNER JOIN etl.V_TypologiesByGroup tg ON t.TypologieID = tg.TypologieID
+	        ) t ON (t.MasterID = s.masterId AND t.MarqueID = s.marqueId AND t.TypoGR1 = s.TypoGR1  )
+	WHEN MATCHED AND t.TypologieID <> s.CurrTypologieID THEN 
 	UPDATE 
-	SET    e.PrevTypologieID = e.CurrTypologieID
-	      ,e.CurrTypologieID = t.TypologieID
+	SET    s.PrevTypologieID = s.CurrTypologieID
+	      ,s.CurrTypologieID = t.TypologieID
 	      ,ChangeDate = @curDate
 	       WHEN NOT MATCHED THEN
-	
 	INSERT 
 	  (
 	    MasterID
 	   ,MarqueID
 	   ,CurrTypologieID
 	   ,PrevTypologieID
+	   ,TypoGR1
 	   ,ChangeDate
 	  )
 	VALUES
@@ -43,16 +30,15 @@ BEGIN
 	   ,MarqueId
 	   ,TypologieID
 	   ,NULL
+	   ,TypoGR1
 	   ,@curDate
 	  )
 	WHEN NOT MATCHED BY SOURCE THEN
 	UPDATE 
-	SET    e.PrevTypologieID = e.CurrTypologieID
-	      ,e.CurrTypologieID = NULL
+	SET    s.PrevTypologieID = s.CurrTypologieID
+	      ,s.CurrTypologieID = NULL
 	      ,ChangeDate = @curDate;
-END
+--END
 
+--TRUNCATE TABLE export.PROB_ChangementTypologie
 
---EXEC etl.PROB_ChangementTypologie
-
---SELECT * FROM export.PROB_ChangementTypologie
