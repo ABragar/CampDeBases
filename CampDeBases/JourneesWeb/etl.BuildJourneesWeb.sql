@@ -27,6 +27,7 @@ BEGIN
 DECLARE @startDate DATETIME = DATEADD(DAY,1,ISNULL((SELECT MAX(dateVisite)FROM dbo.JourneesWeb AS jw),'19000101'))
 DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 
+
 	INSERT INTO #T_JourneesWeb
 	  (
 	    MasterID
@@ -174,7 +175,8 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 --	TRUNCATE TABLE dbo.JourneesWeb 
 	INSERT INTO dbo.JourneesWeb
 	  (
-	    MasterID
+	    ActiviteWebID
+	   ,MasterID
 	   ,SiteID
 	   ,DateVisite
 	   ,NbVisites
@@ -188,25 +190,27 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 	   ,DernierVisite
 	   ,Appartenance
 	  )
-	SELECT MasterId
-	      ,SiteID
-	      ,DateVisite
-	      ,NbVisites
-	      ,NbPagesVues
-	      ,NbPremiumPagesVues
-	      ,MoyenneDuree
-	      ,CodeOS
-	      ,NumericAbo
-	      ,OptinEditorial
-	      ,PremierVisite
-	      ,DernierVisite
-	      ,Appartenance
-	FROM   #T_JourneesWeb_aggregate
-	
+	SELECT 
+		  aw.ActiviteWebID
+		  ,J.MasterId
+	      ,J.SiteID
+	      ,J.DateVisite
+	      ,J.NbVisites
+	      ,J.NbPagesVues
+	      ,J.NbPremiumPagesVues
+	      ,ROUND(J.MoyenneDuree, 0)
+	      ,J.CodeOS
+	      ,J.NumericAbo
+	      ,J.OptinEditorial
+	      ,J.PremierVisite
+	      ,J.DernierVisite
+	      ,J.Appartenance
+	FROM   #T_JourneesWeb_aggregate	J
+		INNER JOIN dbo.ActiviteWeb AS aw ON aw.MasterID = J.masterID AND aw.SiteWebID = j.siteId
+		
+		
 	DROP TABLE #T_JourneesWeb_aggregate
 END
-
-
 
 
  
