@@ -31,6 +31,12 @@
           <AssociatedConnUserName />
           <FullPath>etl.BuildJourneesWeb.sql</FullPath>
         </FileNode>
+        <FileNode Name="etl.BuildJourneesWeb-Test_2_AVE.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.BuildJourneesWeb-Test_2_AVE.sql</FullPath>
+        </FileNode>
       </Items>
     </LogicalFolder>
     <LogicalFolder Name="Miscellaneous" Type="3" Sorted="true">

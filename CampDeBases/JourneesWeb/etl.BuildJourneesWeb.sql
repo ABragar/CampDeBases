@@ -1,6 +1,38 @@
-﻿ALTER PROCEDURE etl.BuildJourneesWeb
+﻿/************************************************************
+ * Code formatted by SoftTree SQL Assistant © v7.2.338
+ * Time: 14.08.2015 17:04:30
+ ************************************************************/
+
+ALTER PROCEDURE etl.BuildJourneesWeb
+	@FirstRun TINYINT = 0
 AS
 BEGIN
+	IF OBJECT_ID('tempdb..#T_NewVisites') IS NOT NULL
+	    DROP TABLE #T_NewVisites
+	
+	CREATE TABLE #T_NewVisites
+	(
+		MasterID       INT NOT NULL
+	   ,SiteID         INT NOT NULL
+	   ,DateVisite     DATE NOT NULL
+	)
+	
+	INSERT INTO #T_NewVisites
+	  (
+	    MasterID
+	   ,SiteID
+	   ,DateVisite
+	  )
+	SELECT masterId
+	      ,SiteId
+	      ,CAST(DateVisite AS DATE)  AS DateVisite
+	FROM   etl.VisitesWeb            AS vw
+	WHERE  vw.TraiteTop = @FirstRun
+	GROUP BY
+	       masterId
+	      ,SiteId
+	      ,CAST(DateVisite AS DATE) 
+	
 	IF OBJECT_ID('tempdb..#T_JourneesWeb') IS NOT NULL
 	    DROP TABLE #T_JourneesWeb
 	
@@ -23,11 +55,6 @@ BEGIN
 	   ,rowNum                 INT
 	)
 	
--- for incremental run
-DECLARE @startDate DATETIME = DATEADD(DAY,1,ISNULL((SELECT MAX(dateVisite)FROM dbo.JourneesWeb AS jw),'19000101'))
-DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
-
-
 	INSERT INTO #T_JourneesWeb
 	  (
 	    MasterID
@@ -47,19 +74,19 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 	  )
 	SELECT vw.MasterID
 	      ,vw.SiteId
-	      ,CAST(DateVisite AS DATE)  AS DateVisite
-	      ,VisiteId                  AS NbVisites
-	      ,PagesNb                   AS NbPagesVues
-	      ,PagesPremiumNb            AS NbPremiumPagesVues
-	      ,CAST(Duree AS FLOAT)      AS MoyenneDuree
+	      ,CAST(vw.DateVisite AS DATE)  AS DateVisite
+	      ,VisiteId                     AS NbVisites
+	      ,PagesNb                      AS NbPagesVues
+	      ,PagesPremiumNb               AS NbPremiumPagesVues
+	      ,CAST(Duree AS FLOAT)         AS MoyenneDuree
 	      ,codeOS
 	      ,OrderOS = CASE 
 	                      WHEN m.typeRef = N'OSTABLETTE' THEN 1
 	                      WHEN m.typeRef = N'OSMOBILE' THEN 2
 	                      ELSE 3
 	                 END
-	      ,DateVisite                AS PremierVisite
-	      ,DateVisite                AS DernierVisite
+	      ,vw.DateVisite                AS PremierVisite
+	      ,vw.DateVisite                AS DernierVisite
 	      ,NumericAbo = CASE ISNULL(TypeAbo ,0)
 	                         WHEN 1 THEN 1
 	                         ELSE 0
@@ -69,26 +96,30 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 	                             ELSE 0
 	                        END
 	      ,ROW_NUMBER() OVER(
-	           PARTITION BY MasterID
-	          ,SiteId
-	          ,DateVisite
+	           PARTITION BY vw.MasterID
+	          ,vw.SiteId
+	          ,vw.DateVisite
 	          ,FinVisite
 	          ,Duree
 	          ,PagesNb
 	          ,PagesPremiumNb
-	          ,XitiSession ORDER BY MasterID
-	          ,SiteId
-	          ,DateVisite
+	          ,XitiSession ORDER BY vw.MasterID
+	          ,vw.SiteId
+	          ,vw.DateVisite
 	          ,CASE 
 	                WHEN m.typeRef = N'OSTABLETTE' THEN 1
 	                WHEN m.typeRef = N'OSMOBILE' THEN 2
 	                ELSE 3
 	           END
-	       )                            rowNum
-	FROM   etl.VisitesWeb            AS vw
+	       )                               rowNum
+	FROM   etl.VisitesWeb               AS vw
+	       INNER JOIN #T_NewVisites     AS tnv
+	            ON  vw.MasterID = tnv.MasterID
+	                AND vw.SiteId = tnv.SiteID
+	                AND CAST(vw.DateVisite AS DATE) = tnv.DateVisite
 	       LEFT JOIN ref.Misc m
 	            ON  vw.CodeOS = m.RefID
-	WHERE  vw.DateVisite >= @startDate AND vw.DateVisite < @endDate
+	
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb(MasterID)
 	CREATE INDEX ix_siteId ON #T_JourneesWeb(SiteID)
@@ -171,9 +202,64 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 	FROM   #T_JourneesWeb_aggregate a
 	       INNER JOIN ref.SitesWeb b
 	            ON  a.SiteID = b.WebSiteID
+	                
+	                
+	                MERGE dbo.JourneesWeb AS t
+	                USING
+	                (
+	                    SELECT aw.ActiviteWebID
+	                          ,J.MasterId
+	                          ,J.SiteID
+	                          ,J.DateVisite
+	                          ,J.NbVisites
+	                          ,J.NbPagesVues
+	                          ,J.NbPremiumPagesVues
+	                          ,ROUND(J.MoyenneDuree ,0) AS MoyenneDuree
+	                          ,J.CodeOS
+	                          ,J.NumericAbo
+	                          ,J.OptinEditorial
+	                          ,J.PremierVisite
+	                          ,J.DernierVisite
+	                          ,J.Appartenance
+	                    FROM   #T_JourneesWeb_aggregate J
+	                           INNER JOIN dbo.ActiviteWeb AS aw
+	                                ON  aw.MasterID = J.masterID
+	                                    AND aw.SiteWebID = j.siteId
+	                ) AS s(
+	                    ActiviteWebID
+	                   ,MasterID
+	                   ,SiteID
+	                   ,DateVisite
+	                   ,NbVisites
+	                   ,NbPagesVues
+	                   ,NbPremiumPagesVues
+	                   ,MoyenneDuree
+	                   ,CodeOS
+	                   ,NumericAbo
+	                   ,OptinEditorial
+	                   ,PremierVisite
+	                   ,DernierVisite
+	                   ,Appartenance
+	                )
+	            ON  s.MasterID = t.MasterID
+	                AND s.SiteId = t.SiteID
+	                AND s.DateVisite = t.DateVisite 
+	                    WHEN matched THEN
 	
---	TRUNCATE TABLE dbo.JourneesWeb 
-	INSERT INTO dbo.JourneesWeb
+	UPDATE 
+	SET    NbVisites = s.NbVisites
+	      ,NbPagesVues = s.NbPagesVues
+	      ,NbPremiumPagesVues = s.NbPremiumPagesVues
+	      ,MoyenneDuree = s.MoyenneDuree
+	      ,CodeOSPrincipal = s.CodeOS
+	      ,NumericAbo = s.NumericAbo
+	      ,OptinEditorial = s.OptinEditorial
+	      ,PremierVisite = s.PremierVisite
+	      ,DernierVisite = s.DernierVisite
+	      ,Appartenance = s.Appartenance
+	       WHEN NOT MATCHED THEN
+	
+	INSERT 
 	  (
 	    ActiviteWebID
 	   ,MasterID
@@ -190,27 +276,24 @@ DECLARE @endDate DATETIME = [etl].[GetBeginOfDay](GETDATE())
 	   ,DernierVisite
 	   ,Appartenance
 	  )
-	SELECT 
-		  aw.ActiviteWebID
-		  ,J.MasterId
-	      ,J.SiteID
-	      ,J.DateVisite
-	      ,J.NbVisites
-	      ,J.NbPagesVues
-	      ,J.NbPremiumPagesVues
-	      ,ROUND(J.MoyenneDuree, 0)
-	      ,J.CodeOS
-	      ,J.NumericAbo
-	      ,J.OptinEditorial
-	      ,J.PremierVisite
-	      ,J.DernierVisite
-	      ,J.Appartenance
-	FROM   #T_JourneesWeb_aggregate	J
-		INNER JOIN dbo.ActiviteWeb AS aw ON aw.MasterID = J.masterID AND aw.SiteWebID = j.siteId
-		
-		
+	VALUES
+	  (
+	    s.ActiviteWebID
+	   ,s.MasterId
+	   ,s.SiteID
+	   ,s.DateVisite
+	   ,s.NbVisites
+	   ,s.NbPagesVues
+	   ,s.NbPremiumPagesVues
+	   ,s.MoyenneDuree
+	   ,s.CodeOS
+	   ,s.NumericAbo
+	   ,s.OptinEditorial
+	   ,s.PremierVisite
+	   ,s.DernierVisite
+	   ,s.Appartenance
+	  );
+	
 	DROP TABLE #T_JourneesWeb_aggregate
 END
-
-
  
