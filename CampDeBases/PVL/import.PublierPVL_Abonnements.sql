@@ -1,7 +1,6 @@
-USE [AmauryVUC]
-
+ USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 04/29/2015 15:20:55 ******/
+/****** Object:  StoredProcedure [import].[PublierPVL_Abonnements]    Script Date: 07/23/2015 13:27:44 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -37,6 +36,7 @@ BEGIN
 	DECLARE @FilePrefix NVARCHAR(5) = NULL
 	DECLARE @CusCompteTableName NVARCHAR(30)
 	DECLARE @sqlCommand NVARCHAR(500)
+	DECLARE @PrefixContact NVARCHAR(3) = LEFT(@FichierTS,2)+N'-'
 	
 	IF @FichierTS LIKE N'FF%'
 	BEGIN
@@ -44,10 +44,10 @@ BEGIN
 	    SET @FilePrefix = N'FF%'
 	END
 	
-	IF @FichierTS LIKE N'EQP%'
+	IF @FichierTS LIKE N'EQ%'
 	BEGIN
 	    SET @CusCompteTableName = N'import.NEO_CusCompteEFR'		
-	    SET @FilePrefix = N'EQP%'
+	    SET @FilePrefix = N'EQ%'
 	END
 	
 	IF @FichierTS LIKE N'LP%'
@@ -236,6 +236,24 @@ BEGIN
 	    WHERE  a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
 	END
 	
+	INSERT INTO #T_Recup
+	  (
+	    RejetCode
+	   ,ImportID
+	   ,FichierTS
+	  )
+	SELECT a.RejetCode
+	      ,a.ImportID
+	      ,a.FichierTS
+	FROM   import.PVL_Abonnements a
+	       INNER JOIN brut.Contacts AS b
+	            ON  @PrefixContact + a.ClientUserId = b.OriginalID
+	WHERE  b.SourceID = 10
+	       AND a.RejetCode & POWER(CAST(2 AS BIGINT) ,14) = POWER(CAST(2 AS BIGINT) ,14)
+	       AND a.FichierTS LIKE @FilePrefix
+
+	
+	
 	UPDATE a
 	SET    RejetCode = a.RejetCode -POWER(CAST(2 AS BIGINT) ,14)
 	FROM   #T_Recup a
@@ -245,15 +263,6 @@ BEGIN
 	FROM   import.PVL_Abonnements a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
-	
-	IF @FilePrefix = N'LP%'
-	BEGIN
-	    UPDATE a
-	    SET    RejetCode = b.RejetCode
-	    FROM   rejet.PVL_Abonnements a
-	           INNER JOIN #T_Recup b
-	                ON  a.ImportID = b.ImportID
-	END	
 	
 	UPDATE a
 	SET    LigneStatut = 0
@@ -283,6 +292,7 @@ BEGIN
 	FROM   rejet.PVL_Abonnements a
 	       INNER JOIN #T_Recup b
 	            ON  a.ImportID = b.ImportID
+
 	
 	INSERT #T_Abos
 	  (
@@ -412,6 +422,14 @@ BEGIN
 	           INNER JOIN brut.Contacts b
 	                ON  a.iRecipientID = b.OriginalID
 	                    AND b.SourceID = @SourceID_Contact
+	                    
+	    UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_Abos a
+	           INNER JOIN brut.Contacts b
+	                ON @PrefixContact + a.ClientUserID = b.OriginalID
+	                    AND b.SourceID = 10
+	    WHERE  a.ProfilID IS NULL
 	    
 	    DELETE b
 	    FROM   #T_Abos a
@@ -419,6 +437,7 @@ BEGIN
 	                ON  a.ImportID = b.ImportID
 	    WHERE  a.ProfilID IS NULL
 	END
+	
 	DELETE #T_Abos
 	WHERE  ProfilID IS NULL
 	
@@ -804,6 +823,7 @@ BEGIN
 	   ,SalonId                  NVARCHAR(255) NULL
 	   ,ModePmtHorsLigne         NVARCHAR(255) NULL
 	   ,SubscriptionStatusID     INT NULL
+	   ,ReaboDate				DATETIME NULL
 	)
 	
 	INSERT #T_Abos_Agreg
@@ -1302,6 +1322,14 @@ BEGIN
 	                ON  a.iRecipientID = b.OriginalID
 	                    AND b.SourceID = @SourceID_Contact
 	END	
+	
+		UPDATE a
+	    SET    ProfilID = b.ProfilID
+	    FROM   #T_AboDernierStatut a
+	           INNER JOIN brut.Contacts b
+	                ON @PrefixContact + a.ClientUserId = b.OriginalID
+	                    AND b.SourceID = 10
+	
 	DELETE #T_AboDernierStatut
 	WHERE  ProfilID IS NULL
 	
@@ -1311,6 +1339,7 @@ BEGIN
 	       INNER JOIN ref.CatalogueAbonnements b
 	            ON  a.ServiceID = b.OriginalID
 	                AND b.SourceID = @SourceID
+	                
 	
 	DELETE #T_AboDernierStatut
 	WHERE  CatalogueAbosID IS NULL
@@ -1338,6 +1367,20 @@ BEGIN
 	                AND a.SouscriptionAboDate = b.SubscriptionCreated
 	WHERE  a.SubscriptionStatusID <> b.SubscriptionStatusID
 	
+	
+	
+	UPDATE a
+	SET    a.ReaboDate = b.SubscriptionLastUpdated
+	FROM   #T_Abos_Agreg a
+	       INNER JOIN #T_AboDernierStatut b
+	            ON  a.ProfilID = b.ProfilID
+	                AND a.CatalogueAbosID = b.CatalogueAbosID
+	                AND a.SouscriptionAboDate = b.SubscriptionCreated
+	       inner join ref.CatalogueAbonnements c on a.CatalogueAbosID=c.CatalogueAbosID
+	WHERE  a.SubscriptionStatusID in (2) /* En cours */ 
+	and a.SubscriptionStatusID=b.SubscriptionStatusID
+	and c.Recurrent=1
+	
 	-- Stocker les lignes dans etl.Abos_Agreg_PVL
 	-- en attendant que la procedure etl.InsertAbonnements_Agreg les deverse dans dbo.Abonnements
 	
@@ -1357,6 +1400,7 @@ BEGIN
 	   ,SouscriptionAboDate
 	   ,DebutAboDate
 	   ,FinAboDate
+	   ,ReaboDate
 	   ,MontantAbo
 	   ,ExAboSouscrNb
 	   ,Devise
@@ -1384,6 +1428,7 @@ BEGIN
 	      ,SouscriptionAboDate
 	      ,DebutAboDate
 	      ,FinAboDate
+	      ,ReaboDate
 	      ,MontantAbo
 	      ,ExAboSouscrNb
 	      ,Devise

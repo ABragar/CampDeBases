@@ -1,8 +1,6 @@
-﻿
-
 USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [etl].[BuildTypologies]    Script Date: 07/02/2015 11:35:58 ******/
+/****** Object:  StoredProcedure [etl].[BuildTypologies]    Script Date: 08/18/2015 17:00:26 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -2837,7 +2835,7 @@ a.MasterID
 from dbo.ConsentementsEmail a inner join ref.Contenus b on a.ContenuID=b.ContenuID
 where b.TypeContenu=3 -- opt-in Partenaire
 and a.Valeur=1 -- Opt-in
-and (a.DerniereOuvertureDate<DATEADD(month,-6,getdate()) or a.DernierClickDate<DATEADD(month,-6,getdate()) or a.DerniereOuvertureDate is null or a.DernierClickDate is null)
+and ( NOT (a.DerniereOuvertureDate>=DATEADD(month,-6,getdate()) or a.DernierClickDate>=DATEADD(month,-6,getdate()) ) or ( a.DerniereOuvertureDate is null AND a.DernierClickDate is null))
 
 -- Eliminer les doublons éventuels
 truncate table #T_Abos_Agreg

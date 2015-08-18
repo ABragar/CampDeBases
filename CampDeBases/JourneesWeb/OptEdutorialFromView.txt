@@ -1,0 +1,27 @@
+---- OptinEditorial from	
+UPDATE J
+SET    OptinEditorial     = ISNULL(x2.OptinEditorial ,0)
+FROM   #T_JourneesWeb_aggregate J
+       OUTER APPLY (
+    SELECT 1 AS OptinEditorial
+    WHERE  1              = ANY(
+               SELECT valeur
+               FROM   (
+                          SELECT masterID
+                                ,cn.ContenuID
+                                ,ConsentementDate
+                                ,valeur
+                                ,ROW_NUMBER() OVER(
+                                     PARTITION BY masterId
+                                    ,cn.ContenuId ORDER BY ConsentementDate 
+                                     DESC
+                                 ) N
+                          FROM   brut.V_NewsletterContenu cn
+                          WHERE  cn.MarqueID = J.Marque
+                                 AND J.DateVisite > cn.ConsentementDate
+                                 AND cn.MasterID = J.MasterID
+                      ) x1
+               WHERE  N = 1
+           )
+) AS x2	
+

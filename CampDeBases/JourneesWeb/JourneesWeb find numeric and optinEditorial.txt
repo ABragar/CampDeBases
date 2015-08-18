@@ -1,0 +1,110 @@
+
+ IF OBJECT_ID('brut.V_NewsletterContenu', 'V') IS NOT NULL 
+	DROP VIEW brut.V_NewsletterContenu
+ GO	
+
+CREATE VIEW brut.V_NewsletterContenu 
+with SCHEMABINDING
+AS
+
+SELECT ce.ConsentementID
+	  ,masterId
+      ,MarqueID
+      ,ce.ContenuID
+      ,ce.ConsentementDate
+      ,ce.valeur
+FROM   brut.ConsentementsEmail AS ce
+       INNER JOIN ref.Contenus cn
+            ON  cn.TypeContenu = 1
+                AND ce.ContenuID = cn.ContenuID
+GO
+
+CREATE unique CLUSTERED INDEX IX_ConsentementID ON brut.V_NewsletterContenu(ConsentementID)
+CREATE INDEX IX_masterId ON brut.V_NewsletterContenu(masterId)
+
+
+
+	--UPDATE a
+	--SET    a.NumericAbo = 1
+	--FROM   #T_JourneesWeb_aggregate a
+	--       INNER JOIN dbo.Abonnements b
+	--            ON  a.MasterID = b.MasterID
+	--                AND a.Marque = b.Marque
+	--       INNER JOIN ref.CatalogueAbonnements c
+	--            ON  b.CatalogueAbosID = c.CatalogueAbosID
+	--WHERE  c.SupportAbo = 1 -- Numerique
+	--       AND a.DateVisite BETWEEN b.DebutAboDate AND b.FinAboDate
+	       
+-- OptinEditorial 
+--UPDATE J
+--SET    OptinEditorial = 1
+--FROM   #T_JourneesWeb_aggregate J
+--       INNER JOIN (
+--                SELECT *
+--                FROM   (
+--                           SELECT J.*
+--                                 ,ce.Valeur
+--                                 ,ROW_NUMBER() OVER(
+--                                      PARTITION BY J.masterId
+--                                     ,j.siteID
+--                                     ,j.DateVisite
+--                                     ,ce.ContenuId ORDER BY ConsentementDate 
+--                                      DESC
+--                                     ,ce.Valeur ASC
+--                                  ) N
+--                           FROM   #T_JourneesWeb_aggregate J
+--                                  INNER JOIN brut.V_NewsletterContenu AS ce
+--                                       ON  ce.MasterID = J.MasterId
+--                                           AND J.DateVisite > ce.ConsentementDate
+--                                           AND ce.MarqueID = J.Marque
+--                       ) x
+--                WHERE  N = 1
+--            )xxx
+--            ON  xxx.MasterId = j.MasterId
+--                AND xxx.SiteId = j.SiteId
+--                AND xxx.DateVisite = j.DateVisite
+--WHERE  xxx.valeur = 1
+--(1037360 row(s) affected)	
+
+--UPDATE #T_JourneesWeb_aggregate SET OptinEditorial = 0 
+
+	-- variant ¹2 
+	--UPDATE J
+	--SET    OptinEditorial     = ISNULL(x2.OptinEditorial ,0)
+	--FROM   #T_JourneesWeb_aggregate J
+	--       OUTER APPLY (
+	--    SELECT 1 AS OptinEditorial
+	--    WHERE  1              = ANY(
+	--               SELECT valeur
+	--               FROM   (
+	--                          SELECT masterID
+	--                                ,ce.ContenuID
+	--                                ,ConsentementDate
+	--                                ,valeur
+	--                                ,ROW_NUMBER() OVER(
+	--                                     PARTITION BY masterId
+	--                                    ,ce.ContenuId ORDER BY ConsentementDate 
+	--                                     DESC
+	--                                     ,ce.Valeur ASC
+	--                                 ) N
+	--                          --FROM   brut.ConsentementsEmail ce
+	--                          --       INNER JOIN ref.Contenus cn
+	--                          --            ON  cn.TypeContenu = 1
+	--                          --                AND ce.ContenuID = cn.ContenuID
+	--                          --                AND cn.MarqueID = J.Marque
+ --                             FROM brut.V_NewsletterContenu AS ce
+	--                          WHERE  ce.MasterID = J.MasterID
+	--                                 AND J.DateVisite > ConsentementDate
+	--                                 AND ce.MarqueID = J.Marque
+	--                      ) x1
+	--               WHERE  N = 1
+	--           )
+	--) AS x2
+	
+--SELECT * FROM #T_JourneesWeb_aggregate j1
+--INNER JOIN #T_JourneesWeb_aggregat_1 j2
+--ON j1.masterId = j2.masterid
+--AND j1.siteId = j2.siteID
+--AND j1.datevisite = j2.datevisite
+--AND j1.OptinEditorial <> j2.OptinEditorial	  
+---- (0 row(s) affected)
