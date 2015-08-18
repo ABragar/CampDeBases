@@ -1,8 +1,6 @@
-﻿
-
 USE [AmauryVUC]
 GO
-/****** Object:  StoredProcedure [etl].[BuildTypologies]    Script Date: 07/02/2015 11:35:58 ******/
+/****** Object:  StoredProcedure [etl].[BuildTypologies]    Script Date: 08/18/2015 17:00:26 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -28,6 +26,9 @@ as
 -- Modification date :	06/07/2015
 -- Modified by :		Andrei BRAGAR
 -- Modifications : Add new typologies "Termines", "Visiteurs identifies" (VIMN,VIMA, VIMI) 
+-- Modification date :	20/07/2015
+-- Modified by :		Andrei BRAGAR
+-- Modifications : changes in OEN, OEA, OEI  
 -- =============================================
 
 
@@ -2834,7 +2835,7 @@ a.MasterID
 from dbo.ConsentementsEmail a inner join ref.Contenus b on a.ContenuID=b.ContenuID
 where b.TypeContenu=3 -- opt-in Partenaire
 and a.Valeur=1 -- Opt-in
-and (a.DerniereOuvertureDate<DATEADD(month,-6,getdate()) or a.DernierClickDate<DATEADD(month,-6,getdate()) or a.DerniereOuvertureDate is null or a.DernierClickDate is null)
+and ( NOT (a.DerniereOuvertureDate>=DATEADD(month,-6,getdate()) or a.DernierClickDate>=DATEADD(month,-6,getdate()) ) or ( a.DerniereOuvertureDate is null AND a.DernierClickDate is null))
 
 -- Eliminer les doublons éventuels
 truncate table #T_Abos_Agreg
@@ -3105,17 +3106,17 @@ group by MasterID, MarqueID
 
 -- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 -- Enlever ceux qui ont un opt-in marque ou partenaire
 
-delete a
-from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--delete a
+--from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
+--where b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
 
 insert #T_Lignes_Typologies
 (
@@ -3162,21 +3163,22 @@ insert #T_Abos_Agreg (N,MasterID,MarqueID)
 select COUNT(*) as N, MasterID, MarqueID from #T_Abos a
 group by MasterID, MarqueID
 
--- Enlever ceux qui ont effectué un achat ou contracté un abonnement
+---- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 -- Enlever ceux qui ont un opt-in marque ou partenaire
 
 delete a
 from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
-	or b.TypologieID in (79) -- Nouveau 
-	)
+where b.TypologieID in (79)
+--where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--	or b.TypologieID in (79) -- Nouveau 
+--	)
 
 insert #T_Lignes_Typologies
 (
@@ -3220,17 +3222,18 @@ group by MasterID, MarqueID
 
 -- Enlever ceux qui ont effectué un achat ou contracté un abonnement
 
-delete a
-from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.AchatsALActe b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
-delete a
-from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
+--delete a
+--from #T_Abos_Agreg a inner join dbo.Abonnements b on a.MasterID=b.MasterID and a.MarqueID=b.Marque
 
 delete a
 from #T_Abos_Agreg a inner join #T_Lignes_Typologies b on a.MasterID=b.MasterID and a.MarqueID=b.MarqueID 
-where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
-	or b.TypologieID in (79,80) -- Nouveau et actif
-	)
+WHERE b.TypologieID in (79,80)
+--where ( b.TypologieID in (65,66,67,68,69,70) -- opt-in marque ou partenaire
+--	or b.TypologieID in (79,80) -- Nouveau et actif
+--	)
 
 insert #T_Lignes_Typologies
 (
