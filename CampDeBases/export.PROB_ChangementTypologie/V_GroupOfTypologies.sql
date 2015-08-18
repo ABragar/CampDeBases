@@ -1,23 +1,13 @@
-﻿--здесь определяем группы.  
-Create VIEW etl.V_GroupOfTypologies
-AS
-SELECT GroupID
-FROM   (VALUES('CSPG') ,('CSPP'),('CSNG'),('CSNP'),('CANG'),('CANP'),('CAPG'),('CAPP'),('PM'),('PG'),('OE'),('VIM'),('VIE')) x(GroupID)
-	
+﻿	
 ALTER VIEW etl.V_TypologieTransitions
 AS
 SELECT IdFrom,IdTo
 FROM   (VALUES(90,86) ) x(IdFrom,IdTo)
+
 --,(10,11)
 
 SELECT * FROM etl.V_TypologieTransitions
 
---связываем группы с типологиями (для удобства)
-ALTER VIEW etl.V_TypologiesByGroup
-AS
-SELECT TypoId AS TypologieID, GroupID
-FROM  ref.typologie AS m
-INNER JOIN etl.V_GroupOfTypologies ON m.Libelle LIKE GroupID+'%' 
  
 
 --SELECT * FROM etl.V_TypologiesByGroup

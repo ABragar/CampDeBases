@@ -13,16 +13,16 @@ GO
 
 --CREATE UNIQUE INDEX idx_MasterMarqueGr1 ON etl.ChangementTypologieKeySet(MasterID, MarqueID, TypoGR1)
 
-IF OBJECT_ID('etl.ChangementTypologieHystory' ,'U') IS NOT NULL
-    DROP TABLE etl.ChangementTypologieHystory
+IF OBJECT_ID('etl.ChangementTypologieHistory' ,'U') IS NOT NULL
+    DROP TABLE etl.ChangementTypologieHistory
  GO	 
-CREATE TABLE etl.ChangementTypologieHystory
+CREATE TABLE etl.ChangementTypologieHistory
 (
 	ChangementId        INT NOT NULL   
    ,CurrTypologieID     INT NULL
    ,PrevTypologieID     INT NULL
    ,ChangeDate          DATE
-   , CONSTRAINT FK_ChangementTypologieHystoryChangementId FOREIGN KEY (ChangementId) REFERENCES etl.ChangementTypologieKeySet(ChangementId) ON DELETE cascade 
+   , CONSTRAINT FK_ChangementTypologieHistoryChangementId FOREIGN KEY (ChangementId) REFERENCES etl.ChangementTypologieKeySet(ChangementId) ON DELETE cascade 
 )
 GO
 

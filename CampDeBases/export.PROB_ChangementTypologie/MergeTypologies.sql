@@ -24,10 +24,10 @@ BEGIN
 	   ,TypoGR1
 	  );
 
-	IF OBJECT_ID('tempdb..#tmpHystory' ,'U') IS NOT NULL
-    DROP TABLE #tmpHystory
+	IF OBJECT_ID('tempdb..#tmpHistory' ,'U') IS NOT NULL
+    DROP TABLE #tmpHistory
 
-	CREATE TABLE #tmpHystory
+	CREATE TABLE #tmpHistory
 (
 	ChangementId        INT NOT NULL   
    ,CurrTypologieID     INT NULL
@@ -35,7 +35,7 @@ BEGIN
    ,ChangeDate          DATE
 )
 	
-	INSERT into #tmpHystory 
+	INSERT into #tmpHistory 
 	SELECT changeset.ChangementId, changeset.CurrTypologieID,changeset.PrevTypologieID, changeset.ChangeDate
 	from
 	(
@@ -75,9 +75,9 @@ BEGIN
 	WHERE Action = 'UPDATE'
 	;
 
-INSERT INTO etl.ChangementTypologieHystory (ChangementId, CurrTypologieID, PrevTypologieID, ChangeDate)
+INSERT INTO etl.ChangementTypologieHistory (ChangementId, CurrTypologieID, PrevTypologieID, ChangeDate)
 SELECT ChangementId, CurrTypologieID,PrevTypologieID, ChangeDate
-FROM #tmpHystory
+FROM #tmpHistory
 
 
 END

@@ -12,7 +12,7 @@
                  'change life cycle'
 			ELSE 'XXX'                 
             END
-               
+                 
 FROM   export.PROB_ChangementTypologie ct
        INNER JOIN (
                 SELECT masterId
@@ -44,6 +44,10 @@ SELECT *
 INTO #tmp
 FROM res
 ORDER BY masterId, marqueId
+
+--SELECT TOP 500000 *
+-- FROM #tmp
+--ORDER BY ChangeDate desc, masterID 
 
 
 SELECT list_code, COUNT(list_code) AS pairCount
