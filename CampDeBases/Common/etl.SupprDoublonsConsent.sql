@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE etl.SupprDoublonsConsent
+﻿ALTER PROCEDURE etl.SupprDoublonsConsent
 AS
 BEGIN
 	SET NOCOUNT ON
@@ -20,6 +20,7 @@ BEGIN
 	     )
 	
 	DELETE c
+	OUTPUT 2, DELETED.ConsentementID INTO export.ActionID_ATOS_ConsentEmails(ActionID, ConsentementID)
 	FROM   dbo.ConsentementsEmail c
 	       INNER JOIN doubles d
 	            ON  c.ConsentementID = d.ConsentementID
