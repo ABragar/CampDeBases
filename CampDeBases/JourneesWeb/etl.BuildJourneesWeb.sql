@@ -1,15 +1,9 @@
-﻿/************************************************************
- * Code formatted by SoftTree SQL Assistant © v7.2.338
- * Time: 14.08.2015 17:04:30
- ************************************************************/
-
-ALTER PROCEDURE etl.BuildJourneesWeb
+﻿ ALTER PROCEDURE etl.BuildJourneesWeb
 	@FirstRun TINYINT = 0
 AS
 BEGIN
 	IF OBJECT_ID('tempdb..#T_NewVisites') IS NOT NULL
 	    DROP TABLE #T_NewVisites
-	
 	CREATE TABLE #T_NewVisites
 	(
 		MasterID       INT NOT NULL
@@ -33,6 +27,9 @@ BEGIN
 	      ,SiteId
 	      ,CAST(DateVisite AS DATE) 
 	
+	CREATE INDEX ix_MasterSiteID on #T_NewVisites(MasterID, SiteID)
+
+
 	IF OBJECT_ID('tempdb..#T_JourneesWeb') IS NOT NULL
 	    DROP TABLE #T_JourneesWeb
 	
@@ -144,10 +141,10 @@ BEGIN
 	           PARTITION BY MasterID
 	          ,SiteID
 	          ,datevisite ORDER BY COUNT(NbVisites) DESC
-	          ,SUM(NbPagesVues) DESC
-	          ,SUM(CAST(MoyenneDuree AS FLOAT)) DESC
 	          ,OrderOS
 	          ,vw.CodeOS DESC
+	          ,SUM(NbPagesVues) DESC
+	          ,SUM(CAST(MoyenneDuree AS FLOAT)) DESC
 	       )                        AS OSDense
 	       INTO #T_JourneesWeb_OSDense
 	FROM   #T_JourneesWeb           AS vw
