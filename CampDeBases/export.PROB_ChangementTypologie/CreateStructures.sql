@@ -1,19 +1,4 @@
-﻿
-IF OBJECT_ID('etl.ChangementTypologieKeySet' ,'U') IS NOT NULL
-    DROP TABLE etl.ChangementTypologieKeySet
-GO	 
-CREATE TABLE etl.ChangementTypologieKeySet
-(
-	ChangementId     INT PRIMARY KEY IDENTITY
-   ,MasterID         INT NOT NULL
-   ,MarqueID         INT NOT NULL
-   ,TypoGR1          NVARCHAR(8)
-)
-GO
-
---CREATE UNIQUE INDEX idx_MasterMarqueGr1 ON etl.ChangementTypologieKeySet(MasterID, MarqueID, TypoGR1)
-
-IF OBJECT_ID('etl.ChangementTypologieHistory' ,'U') IS NOT NULL
+﻿IF OBJECT_ID('etl.ChangementTypologieHistory' ,'U') IS NOT NULL
     DROP TABLE etl.ChangementTypologieHistory
  GO	 
 CREATE TABLE etl.ChangementTypologieHistory
@@ -40,6 +25,20 @@ CREATE TABLE etl.ChangementTypologieSliceLast
 )
 GO
 
+
+IF OBJECT_ID('etl.ChangementTypologieKeySet' ,'U') IS NOT NULL
+    DROP TABLE etl.ChangementTypologieKeySet
+GO	 
+CREATE TABLE etl.ChangementTypologieKeySet
+(
+	ChangementId     INT PRIMARY KEY IDENTITY
+   ,MasterID         INT NOT NULL
+   ,MarqueID         INT NOT NULL
+   ,TypoGR1          NVARCHAR(8)
+)
+GO
+
+--CREATE UNIQUE INDEX idx_MasterMarqueGr1 ON etl.ChangementTypologieKeySet(MasterID, MarqueID, TypoGR1)
 
 
 --IF OBJECT_ID('export.PROB_ChangementTypologie' ,'U') IS NOT NULL

@@ -20,7 +20,7 @@ BEGIN
 	     )
 	
 	DELETE c
-	OUTPUT 2, DELETED.ConsentementID INTO export.ActionID_ATOS_ConsentEmails(ActionID, ConsentementID)
+	OUTPUT 3, DELETED.ConsentementID INTO export.ActionID_ATOS_ConsentEmails(ActionID, ConsentementID)
 	FROM   dbo.ConsentementsEmail c
 	       INNER JOIN doubles d
 	            ON  c.ConsentementID = d.ConsentementID

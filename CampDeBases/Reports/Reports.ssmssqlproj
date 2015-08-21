@@ -38,8 +38,8 @@
           <FullPath>report.DBN_03_TacitesReconductions.sql</FullPath>
         </FileNode>
         <FileNode Name="report.DBN_04_EngagementAbonnesActifs.sql">
-          <AssociatedConnectionMoniker />
-          <AssociatedConnSrvName />
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>report.DBN_04_EngagementAbonnesActifs.sql</FullPath>
         </FileNode>

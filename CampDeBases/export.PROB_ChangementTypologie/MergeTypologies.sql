@@ -6,7 +6,7 @@ BEGIN
 	MERGE etl.ChangementTypologieKeySet AS s 
 	        USING (
 	            SELECT t.MasterID, t.MarqueID, tg.GroupID as	TypoGR1
-	            FROM   dbo.Typologie t
+	            FROM   dbo.Typologie_19082015 t
 	            INNER JOIN etl.V_TypologiesByGroup tg ON t.TypologieID = tg.TypologieID
 	            GROUP BY t.MasterID, t.MarqueID, tg.GroupID
 	        ) t ON (t.MasterID = s.masterId AND t.MarqueID = s.marqueId AND t.TypoGR1 = s.TypoGR1)
@@ -42,7 +42,7 @@ BEGIN
 	        MERGE etl.ChangementTypologieSliceLast AS s 
 	        USING (
 	            SELECT ChangementId, t.TypologieID
-	            FROM   dbo.Typologie t
+	            FROM   dbo.Typologie_19082015 t
 	            INNER JOIN etl.V_TypologiesByGroup tg ON t.TypologieID = tg.TypologieID
 	            INNER JOIN etl.ChangementTypologieKeySet k ON k.masterID = t.masterId AND k.MarqueId = t.marqueID AND k.TypoGR1 = tg.GroupID 
 	        ) t ON (t.ChangementId = s.ChangementId)
