@@ -29,6 +29,9 @@ as
 -- Modification date :	20/07/2015
 -- Modified by :		Andrei BRAGAR
 -- Modifications : changes in OEN, OEA, OEI  
+-- Modification date :	19/08/2015
+-- Modified by :		Andrei BRAGAR
+-- Modifications : add fight between "New" and "Future". New is WINER  
 -- =============================================
 
 
@@ -3708,7 +3711,24 @@ and b.TypologieID = 69 -- Actuels
 	            ON  a.MasterID = b.MasterID
 	                AND a.MarqueID = b.MarqueID
 	WHERE  a.TypologieID = 85
-	       AND b.TypologieID IN (19,20) 
+	       AND b.TypologieID IN (19,20)
+	       
+CREATE INDEX idx_MasterID ON #T_Lignes_Typologies(MasterID)
+
+-- add fight between New and Future. New is WIn.
+DELETE t2
+FROM   #T_Lignes_Typologies             AS t1
+       INNER JOIN #T_Lignes_Typologies  AS t2
+            ON  t1.MasterID = t2.MasterID
+                AND t1.MarqueID = t2.MarqueID
+WHERE  (t1.TypologieID = 1 AND t2.TypologieID = 71)
+       OR (t1.TypologieID = 6 AND t2.TypologieID = 72)
+       OR (t1.TypologieID = 11 AND t2.TypologieID = 73)
+       OR (t1.TypologieID = 16 AND t2.TypologieID = 74)
+       OR (t1.TypologieID = 33 AND t2.TypologieID = 75)
+       OR (t1.TypologieID = 38 AND t2.TypologieID = 76)
+       OR (t1.TypologieID = 49 AND t2.TypologieID = 77)
+       OR (t1.TypologieID = 54 AND t2.TypologieID = 78)
 
 -- Après que toutes les typologies ont été calculées dans une table temporaire,
 -- on les insère dans la table dbo.Typologie
