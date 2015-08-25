@@ -1,4 +1,4 @@
-﻿SET ANSI_NULLS ON
+﻿ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
@@ -40,12 +40,11 @@ set VisiteursNb = S.VisiteursNb
 from report.Week_EditeurVisites_DBN_2 DBN2
 inner join 
 (
-select Appartenance, count(distinct bA.MasterID) as VisiteursNb
-from import.Xiti_Sessions iX
-inner join ref.SitesWeb S on iX.SiteID = S.WebSiteID
-inner join brut.ActiviteWeb bA on S.WebSiteID = bA.SiteWebID and bA.ClientID = iX.ClientID
-where (datepart(year, cast(SessionDebut as datetime)) = @yearn and datepart(week, cast(SessionDebut as datetime)) = @weekn)
-	or (datepart(year, cast(SessionDebut as datetime)) = @yearn+1 and datepart(week, cast(SessionDebut as datetime)) = 1 and @weekn = 53)
+select Appartenance, count(distinct vw.MasterID) as VisiteursNb
+from etl.VisitesWeb vw
+inner join ref.SitesWeb S on vw.SiteID = S.WebSiteID
+where (datepart(year, cast(vw.DateVisite as datetime)) = @yearn and datepart(week, cast(vw.DateVisite as datetime)) = @weekn)
+	or (datepart(year, cast(vw.DateVisite as datetime)) = @yearn+1 and datepart(week, cast(vw.DateVisite as datetime)) = 1 and @weekn = 53)
 group by Appartenance
 ) S on DBN2.appartenance = S.appartenance and DBN2.r_year = @yearn and DBN2.r_week = @weekn 
 
