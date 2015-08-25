@@ -7,23 +7,6 @@ ALTER PROC [report].[RemplirMasterIDsMapping] AS
 BEGIN
 	--SET NOCOUNT ON;
 	TRUNCATE TABLE report.StatsMasterIDsMapping
-	
-	SELECT clientId
-	      ,SiteID
-	      ,sw.Marque 
-	       INTO                        #clientIDs
-	FROM   (
-	           SELECT clientId
-	                 ,SiteID
-	           FROM   import.Xiti_Sessions
-	           WHERE  LigneStatut <> 1
-	           GROUP BY
-	                  clientId
-	                 ,SiteID
-	       ) x
-	       INNER JOIN ref.SitesWeb  AS sw
-	            ON  x.SiteID = sw.WebSiteID
-	
 	INSERT INTO report.StatsMasterIDsMapping
 	  (
 	    MasterID
@@ -31,80 +14,16 @@ BEGIN
 	   ,SiteID
 	   ,MarqueId
 	  )
-	SELECT bc.masterId
-	      ,ClientID
-	      ,SiteId
+	SELECT vw.MasterID
+	      ,cast(c.OriginalID AS NVARCHAR(18))
+	      ,vw.SiteId
 	      ,Marque
-	FROM   #clientIDs c
-	       INNER JOIN import.SSO_Cumul I
-	            ON  ClientID = I.id_SSO
-	       INNER JOIN brut.Contacts bc
-	            ON  I.email_origine = bc.OriginalID
-	                AND bc.SourceID = 2
-	WHERE  c.Marque IN (2 ,6)
-	GROUP BY
-	       bc.MasterID
-	      ,ClientID
-	      ,SiteId
-	      ,Marque
-	
-	UNION ALL
-	SELECT bc.masterId
-	      ,ClientID
-	      ,SiteId
-	      ,Marque
-	FROM   #clientIDs c
-	       INNER JOIN (
-	                SELECT RANK() OVER(
-	                           PARTITION BY sIdCompte ORDER BY ActionID 
-	                           DESC
-	                          ,ImportID DESC
-	                       ) AS N
-	                      ,sIdCompte
-	                      ,iRecipientId
-	                FROM   import.NEO_CusCompteEFR
-	                WHERE  LigneStatut <> 1
-	            ) I
-	            ON  c.ClientID = I.sIdCompte
-	       INNER JOIN brut.Contacts bC
-	            ON  I.iRecipientId = bC.OriginalID
-	                AND bC.SourceID = 1
-	WHERE  I.N = 1
-	       AND c.Marque = 7
-	GROUP BY
-	       bc.MasterID
-	      ,ClientID
-	      ,SiteId
-	      ,Marque
-	
-	UNION ALL
-	SELECT bc.masterId
-	      ,ClientID
-	      ,SiteId
-	      ,Marque
-	FROM   #clientIDs c
-	       INNER JOIN (
-	                SELECT RANK() OVER(
-	                           PARTITION BY sIdCompte ORDER BY ActionID 
-	                           DESC
-	                          ,ImportID DESC
-	                       ) AS N
-	                      ,sIdCompte
-	                      ,iRecipientId
-	                FROM   import.NEO_CusCompteFF
-	                WHERE  LigneStatut <> 1
-	            ) I
-	            ON  c.ClientID = I.sIdCompte
-	       INNER JOIN brut.Contacts bC
-	            ON  I.iRecipientId = bC.OriginalID
-	                AND bC.SourceID = 1
-	WHERE  c.Marque = 3
-	GROUP BY
-	       bc.MasterID
-	      ,ClientID
-	      ,SiteId
-	      ,Marque
-	
-	DROP TABLE #clientIDs
+	FROM   etl.VisitesWeb            AS vw
+	       INNER JOIN brut.Contacts  AS c
+	            ON  vw.MasterID = c.MasterID
+	       INNER JOIN ref.SitesWeb   AS sw
+	            ON  vw.SiteId = sw.WebSiteID
+	GROUP BY vw.MasterID, c.OriginalID, vw.SiteId, sw.Marque	            	
 END
+
 GO
