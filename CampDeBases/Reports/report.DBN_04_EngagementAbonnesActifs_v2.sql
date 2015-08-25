@@ -1,4 +1,4 @@
-﻿ALTER PROC [report].[DBN_04_EngagementAbonnesActifs] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
+ALTER PROC [report].[DBN_04_EngagementAbonnesActifs] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
 AS
 -- =============================================
 -- Author:		Andrey Bragar
@@ -11,6 +11,9 @@ AS
 -- Modification : 1) Ajout de la marque "Le Parisien Magazine"
 --			2) Remplacement de Typologie par une condition équivalente calculée 
 --			3) Utilisation de la table import.Xiti_Sessions
+-- Modiification date : 21/08/2015
+-- Modified by : Andrey Bragar
+-- Modification : change import.Xiti_Sessions by etl.VisitesWeb 
 -- =============================================
 
 BEGIN
@@ -118,8 +121,8 @@ BEGIN
 			
 	create table #T_ClientID_MasterID
 	(
-	ClientID nvarchar(18) not null
-	, WebSiteID nvarchar(18) not null
+	--ClientID nvarchar(18) not null
+	 WebSiteID nvarchar(18) not null
 	, Marque int null
 	, MasterID int null
 	, OS nvarchar(255) null
@@ -129,54 +132,17 @@ BEGIN
 	, WebFixeOS bit null
 	)
 	
-	insert #T_ClientID_MasterID (ClientID, WebSiteID, OS, DateMin, DateMax)
-		select a.ClientID, a.SiteID, a.OS, min(cast(a.SessionDebut as date)), max(cast(a.SessionDebut as date))
-			from import.Xiti_Sessions a 
-			where cast(a.SessionDebut as date)>=dateadd(week,-3,@DebutPeriod) 
-			group by a.ClientID, a.SiteID, a.OS
+	insert #T_ClientID_MasterID (MasterID, WebSiteID, Marque, OS, DateMin, DateMax)
+		select a.MasterID, a.SiteID, sw.Marque ,m.valeur AS OS, min(cast(a.DateVisite as date)), max(cast(a.DateVisite as date))
+		FROM etl.VisitesWeb	 a
+		INNER JOIN ref.Misc AS m ON m.RefID = a.CodeOS
+		INNER JOIN ref.SitesWeb AS sw ON a.SiteId = sw.WebSiteID 
+			where cast(a.DateVisite as date)>=dateadd(week,-3,@DebutPeriod) 
+			group by a.MasterID, a.SiteID, a.CodeOS, sw.Marque,m.valeur
 			
-			create index idx_01_T_ClientID_MasterID on #T_ClientID_MasterID (ClientID)
 			create index idx_02_T_ClientID_MasterID on #T_ClientID_MasterID (WebSiteID)
 			create clustered index idx_03_T_ClientID_MasterID on #T_ClientID_MasterID (DateMin,DateMax)
 	
-	update a 
-			set a.Marque=b.Marque
-			from #T_ClientID_MasterID a
-			inner join ref.SitesWeb b on a.WebSiteID=b.WebSiteID		
-			
-	update a 
-		set a.MasterID=c.MasterID
-		from #T_ClientID_MasterID a 
-		inner join 
-		(select rank() over (partition by b.sIdCompte order by cast(b.ActionID as int) desc, b.ImportID desc) as N1
-		, b.sIdCompte
-		, b.iRecipientId
-		from import.NEO_CusCompteEFR b where b.LigneStatut<>1)  as b on a.ClientID=b.sIdCompte
-		inner join brut.Contacts c on b.iRecipientId=c.OriginalID and c.SourceID=1
-		where a.Marque in (7) -- EQ
-		and b.N1=1
-	
-	update a 
-		set a.MasterID=c.MasterID
-		from #T_ClientID_MasterID a 
-		inner join 
-		(select rank() over (partition by b.sIdCompte order by cast(b.ActionID as int) desc, b.ImportID desc) as N1
-		, b.sIdCompte
-		, b.iRecipientId
-		from import.NEO_CusCompteFF b where b.LigneStatut<>1)  as b on a.ClientID=b.sIdCompte
-		inner join brut.Contacts c on b.iRecipientId=c.OriginalID and c.SourceID=1	
-		where a.Marque in (3) -- FF
-	
-	update a 
-		set a.MasterID=c.MasterID
-		from #T_ClientID_MasterID a 
-		inner join import.SSO_Cumul b on a.ClientID=b.id_SSO
-		inner join brut.Contacts c on b.email_origine=c.OriginalID and c.SourceID=2	
-		where a.Marque in (2,6,9) -- AF, LP, LP Mag
-		
-	delete a from #T_ClientID_MasterID a 
-		where a.MasterID is null
-		
 	update a 
 		set a.MobileOS=
 		(case when a.OS like N'Android%' 
@@ -231,8 +197,7 @@ BEGIN
 	     
 	     ,SessionsPremiumByMarques AS(
 	         -- filter sessions by sites
-	         SELECT s.ClientID
-					, s.DateMax
+	         SELECT s.DateMax
 					, s.DateMin
 					, s.Marque
 					, s.MasterID
@@ -247,8 +212,7 @@ BEGIN
 	     
 	     ,Filtered4week AS (
 	         --get 4 week period
-	         SELECT s.ClientID
-					, s.DateMax
+	         SELECT s.DateMax
 					, s.DateMin
 					, s.Marque
 					, s.MasterID
@@ -263,8 +227,7 @@ BEGIN
 	     
 	     ,SessionsPremiumAbos AS (
 	         --apply filter abosByMarques  
-	         SELECT f.ClientID
-					, f.DateMax
+	         SELECT f.DateMax
 					, f.DateMin
 					, f.Marque
 					, f.MasterID
