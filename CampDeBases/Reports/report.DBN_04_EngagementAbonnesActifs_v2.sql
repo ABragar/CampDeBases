@@ -1,3 +1,11 @@
+USE [AmauryVUC]
+GO
+/****** Object:  StoredProcedure [report].[DBN_04_EngagementAbonnesActifs]    Script Date: 25/08/2015 17:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 ALTER PROC [report].[DBN_04_EngagementAbonnesActifs] (@Editeur NVARCHAR(8) ,@P NVARCHAR(30))
 AS
 -- =============================================
@@ -99,7 +107,13 @@ BEGIN
 	SELECT @DebutPeriod = DebutPeriod
 	FROM   report.RefPeriodeOwnerDB_Num
 	WHERE  IdPeriode = @IdPeriod
-	
+
+	DECLARE @FinPeriod AS DATETIME
+	SELECT @FinPeriod = FinPeriod
+	FROM   report.RefPeriodeOwnerDB_Num
+	WHERE  IdPeriode = @IdPeriod
+
+
 	SET @PrecPeriod = N'Semaine_' + RIGHT(
 	        N'00' + CAST(
 	            DATEPART(week ,DATEADD(week ,-1 ,@DebutPeriod)) AS NVARCHAR(2)
@@ -108,11 +122,12 @@ BEGIN
 	    ) + N'_' + CAST(
 	        DATEPART(YEAR ,DATEADD(week ,-1 ,@DebutPeriod)) AS NVARCHAR(4)
 	    )
-	
+
 	DELETE report.DashboardAboNumerique
 	WHERE  Periode = @Period
 	       AND IdGraph = @IdGraph
-	       AND Editeur = @Editeur
+	       AND Editeur = @Editeur 
+
 	       
 	set dateformat ymd
 	
@@ -125,24 +140,23 @@ BEGIN
 	 WebSiteID nvarchar(18) not null
 	, Marque int null
 	, MasterID int null
-	, OS nvarchar(255) null
 	, DateMin date null
 	, DateMax date null
 	, MobileOS bit null
-	, WebFixeOS bit null
 	)
 	
-	insert #T_ClientID_MasterID (MasterID, WebSiteID, Marque, OS, DateMin, DateMax)
-		select a.MasterID, a.SiteID, sw.Marque ,m.valeur AS OS, min(cast(a.DateVisite as date)), max(cast(a.DateVisite as date))
+	insert #T_ClientID_MasterID (MasterID, WebSiteID, Marque, MobileOS, DateMin, DateMax)
+		select a.MasterID, a.SiteID, sw.Marque , case when a.CodeOS is null then 0 else 1 end, min(cast(a.DateVisite as date)), max(cast(a.DateVisite as date))
 		FROM etl.VisitesWeb	 a
-		INNER JOIN ref.Misc AS m ON m.RefID = a.CodeOS
+--		LEFT JOIN ref.Misc AS m ON m.RefID = a.CodeOS
 		INNER JOIN ref.SitesWeb AS sw ON a.SiteId = sw.WebSiteID 
-			where cast(a.DateVisite as date)>=dateadd(week,-3,@DebutPeriod) 
-			group by a.MasterID, a.SiteID, a.CodeOS, sw.Marque,m.valeur
+			where cast(a.DateVisite as date)>=dateadd(week,-3,@DebutPeriod) and cast(a.DateVisite as date) <= @FinPeriod
+			group by a.MasterID, a.SiteID, case when a.CodeOS is null then 0 else 1 end, sw.Marque
 			
 			create index idx_02_T_ClientID_MasterID on #T_ClientID_MasterID (WebSiteID)
 			create clustered index idx_03_T_ClientID_MasterID on #T_ClientID_MasterID (DateMin,DateMax)
 	
+/*
 	update a 
 		set a.MobileOS=
 		(case when a.OS like N'Android%' 
@@ -172,8 +186,9 @@ BEGIN
 	               ,p1.FinPeriod
 	         FROM  period1week p1
 	     )
-	     
-	     , abosByMarques AS (
+  */
+    
+	     ; WITH abosByMarques AS (
 	         -- filter abos
 	         SELECT a.MasterId
 	         FROM   dbo.Abonnements a
@@ -181,8 +196,9 @@ BEGIN
 	                     ON  a.CatalogueAbosID = b.CatalogueAbosID
 	         WHERE  a.MontantAbo>0.00 /* Payant */
 						and	b.SupportAbo=1	 /* Numérique */
+						and (a.DebutAboDate <= @FinPeriod AND a.FinAboDate >= DATEADD(week,-3,@DebutPeriod))
 						and a.Marque IN (SELECT VALUE
-	                             FROM   @MarqueList)	                
+	                             FROM   @MarqueList)	  
 	         GROUP BY
 	                MasterId
 	     )
@@ -201,10 +217,8 @@ BEGIN
 					, s.DateMin
 					, s.Marque
 					, s.MasterID
-					, s.OS
 					, s.WebSiteID
 					, s.MobileOS
-					, s.WebFixeOS
 	         FROM   #T_ClientID_MasterID s
 	                INNER JOIN sitebyMarques sm
 	                     ON  s.WebSiteID = sm.WebSiteID
@@ -216,13 +230,10 @@ BEGIN
 					, s.DateMin
 					, s.Marque
 					, s.MasterID
-					, s.OS
 					, s.WebSiteID
 					, s.MobileOS
-					, s.WebFixeOS
 	         FROM   SessionsPremiumByMarques s
-	                INNER JOIN period4week AS p
-	                     ON  (s.DateMin >= p.DebutPeriod AND s.DateMax < p.FinPeriod)
+	         WHERE s.DateMin >= DATEADD(week,-3,@DebutPeriod) AND s.DateMax <= @FinPeriod
 	     ) 
 	     
 	     ,SessionsPremiumAbos AS (
@@ -231,10 +242,8 @@ BEGIN
 					, f.DateMin
 					, f.Marque
 					, f.MasterID
-					, f.OS
 					, f.WebSiteID
 					, f.MobileOS
-					, f.WebFixeOS
 	         FROM   Filtered4week f
 	                INNER JOIN abosByMarques am
 	                     ON  f.MasterID = am.MasterId
@@ -244,8 +253,7 @@ BEGIN
 	         --1 week
 	         SELECT sp.MasterID
 	         FROM   SessionsPremiumAbos sp
-	                INNER JOIN period1week AS p
-	                     ON  (sp.DateMax >= p.DebutPeriod AND sp.DateMax < p.FinPeriod)
+			 WHERE sp.DateMax  >= @DebutPeriod and sp.DateMax <= @FinPeriod 
 	         GROUP BY
 	                sp.MasterID
 	     )
@@ -272,7 +280,7 @@ BEGIN
 	     , WebFixeOS AS (
 	         SELECT masterID
 	         FROM   SessionsPremiumAbos a
-	         WHERE  a.WebFixeOS=1
+	         WHERE  a.MobileOS=0
 	         GROUP BY
 	                masterID
 	     )
@@ -293,7 +301,7 @@ BEGIN
 	                          ,0  AS week1
 	                          ,0  AS week4
 	                          ,0  AS MultiScreen
-	                    FROM   SessionsPremiumAbos x1
+	                    FROM   abosByMarques x1
 	                    UNION ALL 
 	                    SELECT 0
 	                          ,COUNT(x2.MasterID)
@@ -340,8 +348,11 @@ BEGIN
 	                END
 	         FROM   counts
 	     )
+
+
+
 	
-	INSERT report.DashboardAboNumerique
+INSERT report.DashboardAboNumerique
 	  (
 	    Periode
 	   ,IdPeriode
@@ -353,7 +364,9 @@ BEGIN
 	   ,Libelle
 	   ,NumOrdre
 	   ,ValeurFloat
-	  )
+	  ) 
+
+
 	SELECT @Period        AS Periode
 	      ,@IdPeriod      AS IdPeriode
 	      ,@IdOwner       AS IdOwner
@@ -367,4 +380,7 @@ BEGIN
 	FROM   res            r
 	ORDER BY
 	       r.NumOrder
+		   
 END
+       
+
