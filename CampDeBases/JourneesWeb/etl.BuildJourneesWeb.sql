@@ -20,8 +20,8 @@ BEGIN
 	SELECT masterId
 	      ,SiteId
 	      ,CAST(DateVisite AS DATE)  AS DateVisite
-	FROM   etl.VisitesWeb            AS vw
-	WHERE  vw.TraiteTop = @FirstRun
+	FROM   etl.VisitesWeb AS vw 
+	WHERE  vw.TraiteTop =1	AND vw.SiteId=40086
 	GROUP BY
 	       masterId
 	      ,SiteId
@@ -109,7 +109,7 @@ BEGIN
 	                ELSE 3
 	           END
 	       )                               rowNum
-	FROM   etl.VisitesWeb               AS vw
+	FROM   etl.VisitesWeb               AS vw  
 	       INNER JOIN #T_NewVisites     AS tnv
 	            ON  vw.MasterID = tnv.MasterID
 	                AND vw.SiteId = tnv.SiteID
@@ -129,7 +129,9 @@ BEGIN
 	      ,vw.SiteId
 	      ,DateVisite
 	      ,COUNT(NbVisites)         AS NbVisites
+	      ,SUM(CASE WHEN vw.CodeOS IS NOT NULL THEN 1 ELSE 0 END) as	NbVisitesMobile
 	      ,SUM(NbPagesVues)         AS NbPagesVues
+		  ,SUM(CASE WHEN vw.CodeOS IS NOT NULL THEN NbPagesVues ELSE 0 END) AS NbPagesVuesMobile	      
 	      ,SUM(NbPremiumPagesVues)  AS NbPremiumPagesVues
 	      ,SUM(CAST(MoyenneDuree AS FLOAT)) AS MoyenneDuree
 	      ,vw.CodeOS
@@ -157,7 +159,7 @@ BEGIN
 	      ,OrderOS
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb_OSDense(MasterID ,SiteID ,DateVisite)
-	
+
 	DROP TABLE #T_JourneesWeb
 	
 	IF OBJECT_ID('tempdb..#T_JourneesWeb_aggregate') IS NOT NULL
@@ -167,12 +169,15 @@ BEGIN
 	      ,J1.SiteId
 	      ,J1.DateVisite
 	      ,SUM(J1.NbVisites)           AS NbVisites
+	      ,SUM(J1.NbVisitesMobile)     AS NbVisitesMobile
 	      ,SUM(J1.NbPagesVues)         AS NbPagesVues
-	      ,SUM(J1.NbPremiumPagesVues)  AS NbPremiumPagesVues
+		  ,SUM(J1.NbPagesVuesMobile)   AS NbPagesVuesMobile
+		  ,SUM(J1.NbPremiumPagesVues)  AS NbPremiumPagesVues
 	      ,SUM(J1.MoyenneDuree) / SUM(J1.NbVisites) AS MoyenneDuree
 	      ,MIN(J1.PremierVisite)       AS PremierVisite
 	      ,MAX(J1.DernierVisite)       AS DernierVisite
 	      ,J2.CodeOS                   AS CodeOS
+	      ,COUNT(DISTINCT isnull(J1.CodeOS,0))	   AS MultiOS
 	      ,NULL                        AS Appartenance
 	      ,MAX(J1.NumericAbo)          AS NumericAbo
 	      ,MAX(J1.OptinEditorial)      AS OptinEditorial 
@@ -193,18 +198,18 @@ BEGIN
 	
 	CREATE INDEX ix_masterId ON #T_JourneesWeb_aggregate(MasterID)
 	
-	--Appartenance
+	----Appartenance
 	UPDATE a
 	SET    a.Appartenance = b.Appartenance
 	FROM   #T_JourneesWeb_aggregate a
 	       INNER JOIN ref.SitesWeb b
 	            ON  a.SiteID = b.WebSiteID
-	                
-	                
+         
 	                MERGE dbo.JourneesWeb AS t
 	                USING
 	                (
-	                    SELECT aw.ActiviteWebID
+	                    SELECT --aw.ActiviteWebID
+							   ROW_NUMBER()	OVER(ORDER BY J.masterID)
 	                          ,J.MasterId
 	                          ,J.SiteID
 	                          ,J.DateVisite
@@ -218,10 +223,13 @@ BEGIN
 	                          ,J.PremierVisite
 	                          ,J.DernierVisite
 	                          ,J.Appartenance
+	                          ,MultiOS = CASE WHEN J.MultiOS > 1 THEN 1 ELSE 0 END
+							  ,J.NbVisitesMobile
+ 							  ,J.NbPagesVuesMobile
 	                    FROM   #T_JourneesWeb_aggregate J
-	                           INNER JOIN dbo.ActiviteWeb AS aw
-	                                ON  aw.MasterID = J.masterID
-	                                    AND aw.SiteWebID = j.siteId
+	                           --JOIN dbo.ActiviteWeb AS aw
+	                           --     ON  aw.MasterID = J.masterID
+	                           --         AND aw.SiteWebID = j.siteId
 	                ) AS s(
 	                    ActiviteWebID
 	                   ,MasterID
@@ -237,6 +245,9 @@ BEGIN
 	                   ,PremierVisite
 	                   ,DernierVisite
 	                   ,Appartenance
+	                   ,MultiOS
+	                   ,NbVisitesMobile
+	                   ,NbPagesVuesMobile
 	                )
 	            ON  s.MasterID = t.MasterID
 	                AND s.SiteId = t.SiteID
@@ -254,6 +265,10 @@ BEGIN
 	      ,PremierVisite = s.PremierVisite
 	      ,DernierVisite = s.DernierVisite
 	      ,Appartenance = s.Appartenance
+	      ,MultiOS = s.MultiOS
+		  ,NbVisitesMobile = s.NbVisitesMobile
+	      ,NbPagesVuesMobile = s.NbPagesVuesMobile
+	      
 	       WHEN NOT MATCHED THEN
 	
 	INSERT 
@@ -272,6 +287,9 @@ BEGIN
 	   ,PremierVisite
 	   ,DernierVisite
 	   ,Appartenance
+	   ,MultiOS
+	   ,NbVisitesMobile
+	   ,NbPagesVuesMobile
 	  )
 	VALUES
 	  (
@@ -289,8 +307,13 @@ BEGIN
 	   ,s.PremierVisite
 	   ,s.DernierVisite
 	   ,s.Appartenance
+	   ,s.MultiOS
+	   ,s.NbVisitesMobile
+	   ,s.NbPagesVuesMobile
+	   
 	  );
 	
 	DROP TABLE #T_JourneesWeb_aggregate
 END
+
  
