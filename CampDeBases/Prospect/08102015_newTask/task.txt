@@ -1,0 +1,43 @@
+Hi Andriy,
+ 
+I have a new mission for you.
+ 
+You probably remember your development to create the new PSG optin based on the LP_Prospects file.
+ 
+We need to do exactly the same with another list of optins.
+ 
+Those optins are in the fields :
+ 
+optin_newsletter_thematique_ile_de_france
+optin_newsletter_thematique_paris
+optin_newsletter_thematique_seine_et_marne
+optin_newsletter_thematique_yvelines
+optin_newsletter_thematique_essonne
+optin_newsletter_thematique_hauts_de_seine
+optin_newsletter_thematique_seine_st_denis
+optin_newsletter_thematique_val_de_marne
+optin_newsletter_thematique_val_oise
+optin_newsletter_thematique_oise
+ 
+ 
+I join the specification of the Prospects file so you can match those fields with the column numbers.
+ 
+ 
+I also created the new values in ref.Contenus (see attachment contenus.bcp ( output –w)).
+ 
+ 
+So you need to change the .fmt file (see attachment), the structures of the prospects tables (see attachment) and the code of the procedures (see attachment).
+ 
+As well as the PSG one, those optins don’t have a specific subscription date attached, so you can use the same method as for the PSG :
+ 
+ 
+ 
+To give a date to a subscription or unsubscription, you will have to use the timestamp of the file when the value of optin_news_them_psg changes.
+That’s for the running mode. To initialize the opt-ins, you will use the field date_souscr_nl_thematique. It’s not accurate but better than nothing.
+ 
+ 
+ 
+I think the Prospects file that you already have contains those columns. If it’s not the case, let me know and I’ll send you a new one.
+ 
+ 
+Thanks.
