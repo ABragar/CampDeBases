@@ -3,6 +3,10 @@ ALTER TABLE import.LPPROSP_Prospects
 ADD optin_news_them_psg NVARCHAR(3)
 GO
 
+ALTER TABLE rejet.LPPROSP_Prospects
+ADD optin_news_them_psg NVARCHAR(3)
+GO
+
 ALTER TABLE import.Prospects_Cumul
 ADD optin_news_them_psg NVARCHAR(3)
 GO

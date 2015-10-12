@@ -7,7 +7,7 @@ GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
+DROP TABLE [import].[LPPROSP_Prospects]
 CREATE TABLE [import].[LPPROSP_Prospects](
 	[RejetCode] [bigint] NOT NULL CONSTRAINT [DF__LPPROSP_P__Rejet__44952D46]  DEFAULT ((0)),
 	[datejoin] [nvarchar](32) NULL,
@@ -62,7 +62,7 @@ GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
+DROP TABLE [import].[Prospects_Cumul]
 CREATE TABLE [import].[Prospects_Cumul](
 	[RejetCode] [bigint] NOT NULL CONSTRAINT [DF__Prospects__Rejet__0682EC34]  DEFAULT ((0)),
 	[datejoin] [nvarchar](32) NULL,
