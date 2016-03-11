@@ -1,4 +1,4 @@
-10.0
+11.0
 79
 1 SQLNCHAR 0 64 "|\0" 2 datejoin French_CI_AS
 2 SQLNCHAR 0 510 "|\0" 3 email_origine French_CI_AS
@@ -58,12 +58,12 @@
 56 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 57 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 58 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
-59 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
+59 SQLNCHAR 0 6 "|\0" 51 optin_newsletter_thematique_medias_people French_CI_AS
 60 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
 61 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
-62 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
+62 SQLNCHAR 0 6 "|\0" 53 optin_newsletter_thematique_environnement French_CI_AS
 63 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
-64 SQLNCHAR 0 100 "|\0" 0 Skip French_CI_AS
+64 SQLNCHAR 0 6 "|\0" 52 optin_newsletter_thematique_tv French_CI_AS
 65 SQLNCHAR 0 6 "|\0" 41 optin_newsletter_thematique_ile_de_france French_CI_AS
 66 SQLNCHAR 0 6 "|\0" 42 optin_newsletter_thematique_paris French_CI_AS
 67 SQLNCHAR 0 6 "|\0" 43 optin_newsletter_thematique_seine_et_marne French_CI_AS

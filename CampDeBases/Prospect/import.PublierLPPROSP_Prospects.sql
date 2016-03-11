@@ -1,9 +1,9 @@
 /************************************************************
  * Code formatted by SoftTree SQL Assistant © v7.2.338
- * Time: 12.10.2015 21:45:32
+ * Time: 12.10.2015 21:47:09
  ************************************************************/
 
- USE [AmauryVUC]
+USE [AmauryVUC]
 GO
 /****** Object:  StoredProcedure [import].[PublierLPPROSP_Prospects]    Script Date: 16.07.2015 14:27:47 ******/
 SET ANSI_NULLS ON
@@ -48,50 +48,62 @@ BEGIN
 	
 	CREATE TABLE #T_Contacts_Prospects
 	(
-		ProfilID                           INT NULL
-	   ,SourceID                           INT NULL
-	   ,OriginalID                         NVARCHAR(255) NULL
-	   ,datejoin                           DATETIME NULL
-	   ,email_origine                      NVARCHAR(255) NULL
-	   ,email_courant                      NVARCHAR(255) NULL
-	   ,username                           NVARCHAR(255) NULL
-	   ,civilite                           NVARCHAR(255) NULL
-	   ,nom                                NVARCHAR(255) NULL
-	   ,prenom                             NVARCHAR(255) NULL
-	   ,date_de_naissance                  DATETIME NULL
-	   ,adresse                            NVARCHAR(255) NULL
-	   ,code_postal                        NVARCHAR(255) NULL
-	   ,ville                              NVARCHAR(255) NULL
-	   ,pays                               NVARCHAR(255) NULL
-	   ,telephone                          NVARCHAR(255) NULL
-	   ,date_modif_profil                  DATETIME NULL
-	   ,date_resil_optin_alerte            DATETIME NULL
-	   ,date_resil_optin_auj_etudiant      DATETIME NULL
-	   ,date_resil_optin_leparisien        DATETIME NULL
-	   ,date_resil_optin_newsletter        DATETIME NULL
-	   ,date_resil_optin_partenaire        DATETIME NULL
-	   ,date_souscr_optin_auj_etudiant     DATETIME NULL
-	   ,date_souscrip_optin_alerte         DATETIME NULL
-	   ,date_souscrip_optin_leparisien     DATETIME NULL
-	   ,date_souscrip_optin_newsletter     DATETIME NULL
-	   ,date_souscrip_optin_partenaire     DATETIME NULL
-	   ,date_resiliation_nl_thematique     DATETIME NULL
-	   ,date_souscr_nl_thematique          DATETIME NULL
-	   ,optin_alerte                       TINYINT NULL
-	   ,optin_aujourdhui_etudiant          TINYINT NULL
-	   ,optin_leparisien                   TINYINT NULL
-	   ,optin_news_them_laparisienne       TINYINT NULL
-	   ,optin_news_them_loisirs            TINYINT NULL
-	   ,optin_news_them_politique          TINYINT NULL
-	   ,optin_newsletter                   TINYINT NULL
-	   ,optin_partenaire                   TINYINT NULL
-	   ,source_detail_jc                   NVARCHAR(255) NULL
-	   ,source_recrutement                 NVARCHAR(255) NULL
-	   ,CreationDate                       DATETIME NULL
-	   ,ModifOptin                         BIT NULL
-	   ,ModifProfil                        BIT NULL
-	   ,optin_news_them_psg                TINYINT NULL
-	)
+		ProfilID                             INT NULL
+	   ,SourceID                             INT NULL
+	   ,OriginalID                           NVARCHAR(255) NULL
+	   ,datejoin                             DATETIME NULL
+	   ,email_origine                        NVARCHAR(255) NULL
+	   ,email_courant                        NVARCHAR(255) NULL
+	   ,username                             NVARCHAR(255) NULL
+	   ,civilite                             NVARCHAR(255) NULL
+	   ,nom                                  NVARCHAR(255) NULL
+	   ,prenom                               NVARCHAR(255) NULL
+	   ,date_de_naissance                    DATETIME NULL
+	   ,adresse                              NVARCHAR(255) NULL
+	   ,code_postal                          NVARCHAR(255) NULL
+	   ,ville                                NVARCHAR(255) NULL
+	   ,pays                                 NVARCHAR(255) NULL
+	   ,telephone                            NVARCHAR(255) NULL
+	   ,date_modif_profil                    DATETIME NULL
+	   ,date_resil_optin_alerte              DATETIME NULL
+	   ,date_resil_optin_auj_etudiant        DATETIME NULL
+	   ,date_resil_optin_leparisien          DATETIME NULL
+	   ,date_resil_optin_newsletter          DATETIME NULL
+	   ,date_resil_optin_partenaire          DATETIME NULL
+	   ,date_souscr_optin_auj_etudiant       DATETIME NULL
+	   ,date_souscrip_optin_alerte           DATETIME NULL
+	   ,date_souscrip_optin_leparisien       DATETIME NULL
+	   ,date_souscrip_optin_newsletter       DATETIME NULL
+	   ,date_souscrip_optin_partenaire       DATETIME NULL
+	   ,date_resiliation_nl_thematique       DATETIME NULL
+	   ,date_souscr_nl_thematique            DATETIME NULL
+	   ,optin_alerte                         TINYINT NULL
+	   ,optin_aujourdhui_etudiant            TINYINT NULL
+	   ,optin_leparisien                     TINYINT NULL
+	   ,optin_news_them_laparisienne         TINYINT NULL
+	   ,optin_news_them_loisirs              TINYINT NULL
+	   ,optin_news_them_politique            TINYINT NULL
+	   ,optin_newsletter                     TINYINT NULL
+	   ,optin_partenaire                     TINYINT NULL
+	   ,source_detail_jc                     NVARCHAR(255) NULL
+	   ,source_recrutement                   NVARCHAR(255) NULL
+	   ,CreationDate                         DATETIME NULL
+	   ,ModifOptin                           BIT NULL
+	   ,ModifProfil                          BIT NULL
+	   ,optin_news_them_psg                  TINYINT NULL
+	   ,optin_newsletter_thematique_ile_de_france TINYINT NULL
+	   ,optin_newsletter_thematique_paris TINYINT NULL
+	   ,optin_newsletter_thematique_seine_et_marne TINYINT NULL
+	   ,optin_newsletter_thematique_yvelines TINYINT NULL
+	   ,optin_newsletter_thematique_essonne TINYINT NULL
+	   ,optin_newsletter_thematique_hauts_de_seine TINYINT NULL
+	   ,optin_newsletter_thematique_seine_st_denis TINYINT NULL
+	   ,optin_newsletter_thematique_val_de_marne TINYINT NULL
+	   ,optin_newsletter_thematique_val_oise TINYINT NULL
+	   ,optin_newsletter_thematique_oise     TINYINT NULL
+	   ,optin_newsletter_thematique_medias_people     TINYINT NULL
+	   ,optin_newsletter_thematique_tv     TINYINT NULL
+	   ,optin_newsletter_thematique_environnement     TINYINT NULL	)
 	
 	SET DATEFORMAT ymd
 	
@@ -139,6 +151,19 @@ BEGIN
 	   ,ModifOptin
 	   ,ModifProfil
 	   ,optin_news_them_psg
+	   ,optin_newsletter_thematique_ile_de_france
+	   ,optin_newsletter_thematique_paris
+	   ,optin_newsletter_thematique_seine_et_marne
+	   ,optin_newsletter_thematique_yvelines 
+	   ,optin_newsletter_thematique_essonne 
+	   ,optin_newsletter_thematique_hauts_de_seine 
+	   ,optin_newsletter_thematique_seine_st_denis
+	   ,optin_newsletter_thematique_val_de_marne
+	   ,optin_newsletter_thematique_val_oise
+	   ,optin_newsletter_thematique_oise 
+	   ,optin_newsletter_thematique_medias_people
+	   ,optin_newsletter_thematique_tv
+	   ,optin_newsletter_thematique_environnement
 	  )
 	SELECT NULL                           AS ProfilID
 	      ,@SourceID
@@ -196,6 +221,19 @@ BEGIN
 	      ,ModifOptin
 	      ,ModifProfil
 	      ,CAST(optin_news_them_psg AS TINYINT) AS optin_news_them_psg
+	      ,CAST(optin_newsletter_thematique_ile_de_france AS TINYINT) AS optin_newsletter_thematique_ile_de_france
+	      ,CAST(optin_newsletter_thematique_paris AS TINYINT) AS optin_newsletter_thematique_paris
+	      ,CAST(optin_newsletter_thematique_seine_et_marne AS TINYINT) AS optin_newsletter_thematique_seine_et_marne
+	      ,CAST(optin_newsletter_thematique_yvelines AS TINYINT) AS optin_newsletter_thematique_yvelines
+	      ,CAST(optin_newsletter_thematique_essonne AS TINYINT) AS optin_newsletter_thematique_essonne
+	      ,CAST(optin_newsletter_thematique_hauts_de_seine AS TINYINT) AS optin_newsletter_thematique_hauts_de_seine
+	      ,CAST(optin_newsletter_thematique_seine_st_denis AS TINYINT) AS optin_newsletter_thematique_seine_st_denis
+	      ,CAST(optin_newsletter_thematique_val_de_marne AS TINYINT) AS optin_newsletter_thematique_val_de_marne
+	      ,CAST(optin_newsletter_thematique_val_oise AS TINYINT) AS optin_newsletter_thematique_val_oise
+	      ,CAST(optin_newsletter_thematique_oise AS TINYINT) AS optin_newsletter_thematique_oise
+	      ,CAST(optin_newsletter_thematique_medias_people AS TINYINT) AS optin_newsletter_thematique_medias_people
+	      ,CAST(optin_newsletter_thematique_tv AS TINYINT) AS optin_newsletter_thematique_tv
+	      ,CAST(optin_newsletter_thematique_environnement AS TINYINT) AS optin_newsletter_thematique_environnement
 	FROM   import.Prospects_Cumul
 	WHERE  FichierTS = @FichierTS
 	       AND LigneStatut = 0
@@ -1179,7 +1217,93 @@ BEGIN
 	       AND t.ProfilID IS NOT NULL
 	       AND d.ProfilID IS NULL
 	       AND t.ModifOptin = 1
+
+
+--new optins
+	DECLARE @optin_date DATETIME = CAST(
+	            SUBSTRING(@FichierTS ,LEN(@FichierTS) -7 ,4) + SUBSTRING(@FichierTS ,LEN(@FichierTS) -9 ,2) 
+	            +
+	            SUBSTRING(@FichierTS ,LEN(@FichierTS) -11 ,2) AS DATETIME
+	        ) 
 	
+DECLARE @optin NVARCHAR(255)
+DECLARE @contenuId int	       
+DECLARE optin_cursor CURSOR LOCAL STATIC READ_ONLY FORWARD_ONLY 
+FOR
+    SELECT optin,contenuId
+    FROM   (
+               VALUES (N'optin_newsletter_thematique_ile_de_france',59)
+              ,(N'optin_newsletter_thematique_paris',60)
+              ,(N'optin_newsletter_thematique_seine_et_marne',61)
+              ,(N'optin_newsletter_thematique_yvelines',62)
+              ,(N'optin_newsletter_thematique_essonne',63)
+              ,(N'optin_newsletter_thematique_hauts_de_seine',64)
+              ,(N'optin_newsletter_thematique_seine_st_denis',65)
+              ,(N'optin_newsletter_thematique_val_de_marne',66)
+              ,(N'optin_newsletter_thematique_val_oise',67)
+              ,(N'optin_newsletter_thematique_oise',68)
+              ,(N'optin_newsletter_thematique_medias_people',69)
+              ,(N'optin_newsletter_thematique_tv',70)
+             ,(N'optin_newsletter_thematique_environnement',71)
+           ) x(optin,contenuId)
+
+OPEN optin_cursor
+FETCH NEXT FROM optin_cursor INTO @optin, @contenuId
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	declare @upd_sql NVARCHAR(MAX) = N'
+		UPDATE ce
+		SET    ce.Valeur = case when '+@optin+' = 2 then -1 when '+@optin+' = 1 then 1 end 
+	      ,ConsentementDate = @optin_date
+		FROM   #T_Contacts_Prospects t
+	       INNER JOIN ref.Contenus c
+	            ON  c.ContenuId = @contenuId
+	       INNER JOIN brut.ConsentementsEmail ce
+	            ON  t.ProfilID = ce.ProfilID
+	                AND c.ContenuID = ce.ContenuID
+	WHERE  t.ProfilID IS NOT NULL
+	'    EXEC sp_executesql @upd_sql
+        ,@parameters = N'@contenuId int, @optin_date DateTime'
+        ,@contenuId = @contenuId
+    	,@optin_date = @optin_date
+
+	PRINT  @upd_sql
+	declare @ins_sql NVARCHAR(MAX) = N'
+	INSERT brut.ConsentementsEmail
+	  (
+	    ProfilID
+	   ,MasterID
+	   ,Email
+	   ,ContenuID
+	   ,Valeur
+	   ,ConsentementDate
+	  )
+	SELECT t.ProfilID
+	      ,t.ProfilID
+	      ,LEFT(t.email_courant ,128)
+	      ,c.ContenuID 
+	      ,1                          AS Valeur
+	      ,@optin_date  AS ConsentementDate
+	FROM   #T_Contacts_Prospects t
+	       INNER JOIN ref.Contenus c
+	            ON  c.ContenuId = @contenuId
+	       LEFT JOIN brut.ConsentementsEmail ce
+	            ON  t.ProfilID = ce.ProfilID
+	                AND c.ContenuID = ce.ContenuID
+	WHERE  t.ProfilID IS NOT NULL
+	       AND t.'+@optin+' = 1
+	       AND ce.ProfilID IS NULL'
+    
+    EXEC sp_executesql @ins_sql
+        ,@parameters = N'@contenuId int, @optin_date DateTime'
+        ,@contenuId = @contenuId
+    	,@optin_date = @optin_date
+    
+    FETCH NEXT FROM optin_cursor INTO @optin, @contenuId
+END
+CLOSE optin_cursor
+DEALLOCATE optin_cursor 
+--end
 	UPDATE a
 	SET    LigneStatut = 99
 	FROM   import.Prospects_Cumul a
@@ -1200,22 +1324,22 @@ BEGIN
 	    DROP TABLE #T_Contacts_Prospects
 	
 	/********** AUTOCALCULATE REJECTSTATS **********/
-	DELETE 
-	FROM   QTSDQF.rejet.REJETS_TAUX
-	WHERE  TableName = '[AmauryVUC].[import].[LPPROSP_Prospects]'
+	--DELETE 
+	--FROM   QTSDQF.rejet.REJETS_TAUX
+	--WHERE  TableName = '[AmauryVUC].[import].[LPPROSP_Prospects]'
 	
-	IF (
-	       EXISTS(
-	           SELECT NULL
-	           FROM   sys.tables t
-	                  INNER JOIN sys.[schemas] s
-	                       ON  s.SCHEMA_ID = t.SCHEMA_ID
-	           WHERE  s.name = 'import'
-	                  AND t.Name = 'LPPROSP_Prospects'
-	       )
-	   )
-	    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
-	            '95940C81-C7A7-4BD9-A523-445A343A9605'
-	           ,'LPPROSP_Prospects'
-	           ,@FichierTS
+	--IF (
+	--       EXISTS(
+	--           SELECT NULL
+	--           FROM   sys.tables t
+	--                  INNER JOIN sys.[schemas] s
+	--                       ON  s.SCHEMA_ID = t.SCHEMA_ID
+	--           WHERE  s.name = 'import'
+	--                  AND t.Name = 'LPPROSP_Prospects'
+	--       )
+	--   )
+	--    EXECUTE [QTSDQF].[dbo].[RejetsStats] 
+	--            '95940C81-C7A7-4BD9-A523-445A343A9605'
+	--           ,'LPPROSP_Prospects'
+	--           ,@FichierTS
 END

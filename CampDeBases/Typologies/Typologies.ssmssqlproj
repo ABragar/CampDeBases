@@ -31,6 +31,12 @@
           <AssociatedConnUserName />
           <FullPath>etl.BuildTypologies.sql</FullPath>
         </FileNode>
+        <FileNode Name="etl.BuildTypologies_2.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>etl.BuildTypologies_2.sql</FullPath>
+        </FileNode>
         <FileNode Name="fill vie typology.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>

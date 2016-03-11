@@ -6,10 +6,13 @@ CampDeBases/Reports/Tableau de bord abos numériques - pour Andrei_translate.doc
 *.xlsx
 *.rar
 *.7z
-
+*.csv
 CampDeBases/Prospect/LeParisien_clients_prospects_14072015.hashed.csv
-<<<<<<< HEAD
-=======
 CampDeBases/PVL_Utilisateur.csv
 CampDeBases/SSO_Cumul.csv
->>>>>>> pvl
+CampDeBases/Prospect/08102015_newTask/Prospects_20151016.bcp.hashed.bcp
+CampDeBases/export.PROB_ChangementTypologie/etl.ChangementTypologieKeySet.fmt
+CampDeBases/export.PROB_ChangementTypologie/etl.ChangementTypologieKeySet_27-11-2015.csv
+CampDeBases/export.PROB_ChangementTypologie/etl.ChangementTypologieSliceLast.fmt
+CampDeBases/export.PROB_ChangementTypologie/etl.ChangementTypologieSliceLast_27-11-2015.csv
+*.bcp

@@ -23,6 +23,8 @@ Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "export.PROB_ChangementTypol
 EndProject
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Common", "Common\Common.ssmssqlproj", "{EC2BB135-5202-4945-AA19-94065B12CABB}"
 EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Prospect", "Prospect\Prospect.ssmssqlproj", "{1B4D809A-B73F-4644-A936-255D0FF7209F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
@@ -38,8 +40,9 @@ Global
 		{7CF39CD3-9C7C-4227-8584-0DB8D80DE304}.Default|Default.ActiveCfg = Default
 		{8938B5C8-B66A-4806-BF1E-2DC7686FA79F}.Default|Default.ActiveCfg = Default
 		{2FED0193-B4DB-4B29-94C9-58D8F163FD76}.Default|Default.ActiveCfg = Default
-		{84D4C1A2-94C2-435D-BB20-AC4C8116CA9A}.Default|Default.ActiveCfg = Default
 		{EC2BB135-5202-4945-AA19-94065B12CABB}.Default|Default.ActiveCfg = Default
+		{73BF59B4-03BE-428D-932A-CE17D40047A1}.Default|Default.ActiveCfg = Default
+		{1B4D809A-B73F-4644-A936-255D0FF7209F}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

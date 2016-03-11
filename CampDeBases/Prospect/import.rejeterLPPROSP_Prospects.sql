@@ -19,8 +19,9 @@ set nocount on
 -- Modification AVE 04/11/2014 :
 -- J’ai inhibй toutes les vйrifications des dates entre elles. C’est la proc de publication qui choisira la plus ancienne.
 
-exec import.TrimColonnes 'import', 'Prospects'
+exec import.TrimColonnes 'import', 'LPPROSP_Prospects'
 update import.LPPROSP_Prospects set FichierTS= @FichierTS where FichierTS is null
+update import.LPPROSP_Prospects set FichierTS= @FichierTS where  ISNUMERIC(FichierTS)=1
 
 update import.LPPROSP_Prospects set datejoin=NULL where datejoin=N'\N' and FichierTS = @FichierTS
 update import.LPPROSP_Prospects set adresse=NULL where adresse=N'\N' and FichierTS = @FichierTS
@@ -74,7 +75,9 @@ update import.LPPROSP_Prospects set optin_newsletter_thematique_seine_st_denis=N
 update import.LPPROSP_Prospects set optin_newsletter_thematique_val_de_marne=NULL where optin_newsletter_thematique_val_de_marne=N'\N' and FichierTS = @FichierTS
 update import.LPPROSP_Prospects set optin_newsletter_thematique_val_oise=NULL where optin_newsletter_thematique_val_oise=N'\N' and FichierTS = @FichierTS
 update import.LPPROSP_Prospects set optin_newsletter_thematique_oise=NULL where optin_newsletter_thematique_oise=N'\N' and FichierTS = @FichierTS
-
+update import.LPPROSP_Prospects set optin_newsletter_thematique_medias_people=NULL where optin_newsletter_thematique_medias_people=N'\N' and FichierTS = @FichierTS
+update import.LPPROSP_Prospects set optin_newsletter_thematique_tv=NULL where optin_newsletter_thematique_tv=N'\N' and FichierTS = @FichierTS
+update import.LPPROSP_Prospects set optin_newsletter_thematique_environnement=NULL where optin_newsletter_thematique_environnement=N'\N' and FichierTS = @FichierTS
 
 update import.LPPROSP_Prospects set adresse=replace (adresse,N'"',N'') where FichierTS = @FichierTS
 update import.LPPROSP_Prospects set civilite=replace (civilite,N'"',N'') where FichierTS = @FichierTS
@@ -126,7 +129,9 @@ update import.LPPROSP_Prospects set optin_newsletter_thematique_seine_st_denis=r
 update import.LPPROSP_Prospects set optin_newsletter_thematique_val_de_marne=replace (optin_newsletter_thematique_val_de_marne,N'"',N'') where FichierTS = @FichierTS
 update import.LPPROSP_Prospects set optin_newsletter_thematique_val_oise=replace (optin_newsletter_thematique_val_oise,N'"',N'') where FichierTS = @FichierTS
 update import.LPPROSP_Prospects set optin_newsletter_thematique_oise=replace (optin_newsletter_thematique_oise,N'"',N'') where FichierTS = @FichierTS
-
+update import.LPPROSP_Prospects set optin_newsletter_thematique_medias_people=replace (optin_newsletter_thematique_medias_people,N'"',N'') where FichierTS = @FichierTS
+update import.LPPROSP_Prospects set optin_newsletter_thematique_tv=replace (optin_newsletter_thematique_tv,N'"',N'') where FichierTS = @FichierTS
+update import.LPPROSP_Prospects set optin_newsletter_thematique_environnement=replace (optin_newsletter_thematique_environnement,N'"',N'') where FichierTS = @FichierTS
 SET Language ENGLISH
 
 -- Rйfйrentiel
@@ -511,6 +516,21 @@ update import.LPPROSP_Prospects set rejetCode = i.rejetCode | etl.GetErrorCode('
 from import.LPPROSP_Prospects i
 where FichierTS = @FichierTS and LigneStatut = 0
 and (cast(optin_newsletter_thematique_oise as int) < 0 or cast(optin_newsletter_thematique_oise as int) > 2)
+
+update import.LPPROSP_Prospects set rejetCode = i.rejetCode | etl.GetErrorCode('import.LPPROSP_Prospects','optin_newsletter_thematique_medias_people')
+from import.LPPROSP_Prospects i
+where FichierTS = @FichierTS and LigneStatut = 0
+and (cast(optin_newsletter_thematique_medias_people as int) < 0 or cast(optin_newsletter_thematique_medias_people as int) > 2)
+
+update import.LPPROSP_Prospects set rejetCode = i.rejetCode | etl.GetErrorCode('import.LPPROSP_Prospects','optin_newsletter_thematique_tv')
+from import.LPPROSP_Prospects i
+where FichierTS = @FichierTS and LigneStatut = 0
+and (cast(optin_newsletter_thematique_tv as int) < 0 or cast(optin_newsletter_thematique_tv as int) > 2)
+
+update import.LPPROSP_Prospects set rejetCode = i.rejetCode | etl.GetErrorCode('import.LPPROSP_Prospects','optin_newsletter_thematique_environnement')
+from import.LPPROSP_Prospects i
+where FichierTS = @FichierTS and LigneStatut = 0
+and (cast(optin_newsletter_thematique_environnement as int) < 0 or cast(optin_newsletter_thematique_environnement as int) > 2)
 
 update import.LPPROSP_Prospects set RejetCode = RejetCode/2 where RejetCode<>0 and FichierTS = @FichierTS
 

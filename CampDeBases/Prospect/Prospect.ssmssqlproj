@@ -19,11 +19,41 @@
     </LogicalFolder>
     <LogicalFolder Name="Queries" Type="0" Sorted="true">
       <Items>
+        <FileNode Name="create import.LPPROSP_Prospects.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>create import.LPPROSP_Prospects.sql</FullPath>
+        </FileNode>
+        <FileNode Name="import.CumulLPPROSP_Prospects.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>import.CumulLPPROSP_Prospects.sql</FullPath>
+        </FileNode>
         <FileNode Name="import.PublierLPPROSP_Prospects.sql">
           <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
           <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
           <AssociatedConnUserName />
           <FullPath>import.PublierLPPROSP_Prospects.sql</FullPath>
+        </FileNode>
+        <FileNode Name="import.rejeterLPPROSP_Prospects.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>import.rejeterLPPROSP_Prospects.sql</FullPath>
+        </FileNode>
+        <FileNode Name="add new fields.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>add new fields.sql</FullPath>
+        </FileNode>
+        <FileNode Name="Init_optins.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:PC\MSSQLDEV:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>PC\MSSQLDEV</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>Init_optins.sql</FullPath>
         </FileNode>
       </Items>
     </LogicalFolder>
